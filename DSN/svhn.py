@@ -1,13 +1,3 @@
-
-# coding: utf-8
-
-# # Assignment 0
-# 
-# Objective of this assignment is to give an overview of working with PyTorch to train, test and save your model.
-
-# In[ ]:
-
-
 from __future__ import division, print_function, unicode_literals 
 import torch
 import timeit
@@ -26,9 +16,9 @@ input_size = 784
 hidden_size = 500
 num_classes = 10
 num_epochs = 5
-batch_size = 10
+batch_size = 20
 learning_rate = 0.001
-model_name = 'svhn_model.pkl'
+model_name = 'svhn_model'
 
 
 # ### Loading SVHN dataset
@@ -71,8 +61,9 @@ def imshow(img):
 
 # test_dataiter = iter(test_loader)
 # test_images, test_labels = test_dataiter.next()
-# # print images
+# # # print images
 # print("Test images")
+# print (test_labels)
 # imshow(torchvision.utils.make_grid(test_images))
 
 # train_dataiter = iter(train_loader)
@@ -175,7 +166,7 @@ def train():
                 print ('Epoch [%d/%d], Step [%d/%d], Loss: %.4f, Elapsed Time: %.2f' 
                       %(epoch+1, num_epochs, i+1, len(train_dataset)//batch_size, loss.data[0], elapsed))
 
-    torch.save(net.state_dict(), model_name)
+    # torch.save(net.state_dict(), model_name)
 
                
 
@@ -185,7 +176,9 @@ def test(model):
     
     for images, labels in test_loader:
         images = Variable(images)  
-        
+        labels[labels == batch_size] = 0
+        labels = labels.type(torch.LongTensor)
+        labels = labels.view(labels.size(0),)
         outputs = model(images)
         _, predicted = torch.max(outputs.data, 1)
         total += labels.size(0)
@@ -196,17 +189,18 @@ def test(model):
 start_time = timeit.default_timer()
 
 net = CustomResnet(num_classes = 10)
-net = net.train()
+# net = net.train()
 
-criterion = nn.CrossEntropyLoss()  
-optimizer = torch.optim.Adam(net.parameters(), lr=learning_rate)
+# criterion = nn.CrossEntropyLoss()  
+# optimizer = torch.optim.Adam(net.parameters(), lr=learning_rate)
 
 
-train()
+# train()
 
-elapsed = timeit.default_timer() - start_time
-print ('Elapsed Time: %.2f' %(elapsed)) 
+# elapsed = timeit.default_timer() - start_time
+# print ('Elapsed Time: %.2f' %(elapsed)) 
 
+net.load_state_dict(torch.load(model_name))
 net = net.eval()
 test(net)
 elapsed = timeit.default_timer() - start_time

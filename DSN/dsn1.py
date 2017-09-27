@@ -167,11 +167,49 @@ class PrivateEncoder(nn.Module):
 
         return out
 
+class SharedDecoder(nn.Module):
+    def __init__(self, shared_decoder_in=6144):
+        super(SharedDecoder, self).__init__()
 
-if use_gpu:
-    model.cuda()
+        self.fc = nn.Linear(shared_decoder_in, 300)
 
-def train(model,loader):
+        self.conv1 = nn.Conv2d(in_channels=3,out_channels=16,kernel_size=3,stride=1,padding=0,bias=True)
+        self.relu1 = nn.ReLU(inplace=True)
+        self.conv2 = nn.Conv2d(in_channels=16,out_channels=16,kernel_size=3,stride=1,padding=0,bias=True)
+        self.relu2 = nn.ReLU(inplace=True)
+
+        self.upsample = nn.ConvTranspose2d(in_channels=16, out_channels=16, kernel_size=3, stride=1)
+
+        self.conv3 = nn.Conv2d(in_channels=16,out_channels=16,kernel_size=3,stride=1,padding=0,bias=True)
+        self.relu3 = nn.ReLU(inplace=True)
+
+        self.conv4 = nn.Conv2d(in_channels=16,out_channels=3,kernel_size=3,stride=1,padding=0,bias=True)
+
+    def forward(self, x):
+        # print (x.size())
+        out = self.fc(x)
+        # print (out.size())
+        out = out.view(out.size(0), 3,10,10)
+
+        out = self.conv1(out)
+        self.relu1(out)
+        out = self.conv2(out)
+        self.relu2(out)
+
+        out = self.upsample(out)
+
+        out = self.conv3(out)
+        self.relu3(out)
+
+        out = self.conv4(out)
+        print (out.size())
+
+        return out
+
+
+
+
+def train(se,pe,sd,loader):
     # Code for training the model
     # Make sure to output a matplotlib graph of training losses
     print ("Training Resnet")
@@ -186,7 +224,10 @@ def train(model,loader):
             # Forward + Backward + Optimize
 
             optimizer.zero_grad()  # zero the gradient buffer
-            outputs = model(images)
+            outputs1 = pe(images)
+            outputs2 = se(images)
+            x = torch.cat((outputs1, outputs2), 1)
+            outputs = sd(x)
             sys.exit()
             loss = criterion(outputs, labels)
             loss.backward()
@@ -224,11 +265,17 @@ def test(model):
     return (100 * correct / total)
     
 
-net = PrivateEncoder()
-net = net.train()
+pe = PrivateEncoder()
+pe = pe.train()
+
+se = SharedEncoder()
+se = se.train()
+
+sd = SharedDecoder()
+sd = sd.train()
 
 criterion = nn.CrossEntropyLoss()  
-optimizer = torch.optim.Adam(net.parameters(), lr=learning_rate)
+optimizer = torch.optim.Adam(pe.parameters(), lr=learning_rate)
 
-train(net, train_loader_source)
+train(se, pe, sd, train_loader_source)
 # test(model)

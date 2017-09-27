@@ -1,13 +1,3 @@
-
-# coding: utf-8
-
-# # Assignment 0
-# 
-# Objective of this assignment is to give an overview of working with PyTorch to train, test and save your model.
-
-# In[ ]:
-
-
 from __future__ import division, print_function, unicode_literals 
 import torch
 import timeit
@@ -104,6 +94,7 @@ def imshow(img):
 # test_images, test_labels = test_dataiter.next()
 # # print images
 # print("Test images")
+# print (test_labels)
 # imshow(torchvision.utils.make_grid(test_images))
 
 # train_dataiter = iter(train_loader)
