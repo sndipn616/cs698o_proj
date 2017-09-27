@@ -105,15 +105,15 @@ class SharedEncoder(nn.Module):
     def __init__(self, shared_encoder_out=3072):
         super(SharedEncoder, self).__init__() 
 
-        self.conv1 = nn.Conv2d(in_channels=3,out_channels=64,kernel_size=3,stride=1,padding=0,bias=True)        
+        self.conv1 = nn.Conv2d(in_channels=3,out_channels=64,kernel_size=5)        
         self.relu1 = nn.ReLU(inplace=True)
-        self.maxpool1 = nn.MaxPool2d(kernel_size=3,stride=1)
+        self.maxpool1 = nn.MaxPool2d(kernel_size=3,stride=2)
 
-        self.conv2 = nn.Conv2d(in_channels=64,out_channels=64,kernel_size=3,stride=1,padding=0,bias=True)        
+        self.conv2 = nn.Conv2d(in_channels=64,out_channels=64,kernel_size=5)        
         self.relu2 = nn.ReLU(inplace=True)
-        self.maxpool2 = nn.MaxPool2d(kernel_size=3,stride=1)
+        self.maxpool2 = nn.MaxPool2d(kernel_size=3,stride=2)
 
-        self.fc = nn.Linear(36864, shared_encoder_out)
+        self.fc = nn.Linear(1024, shared_encoder_out)
 
     def forward(self, x):
 
@@ -138,15 +138,15 @@ class PrivateEncoder(nn.Module):
     def __init__(self, target_encoder_out=3072):
         super(PrivateEncoder, self).__init__() 
 
-        self.conv1 = nn.Conv2d(in_channels=3,out_channels=32,kernel_size=3,stride=1,padding=0,bias=True)        
+        self.conv1 = nn.Conv2d(in_channels=3,out_channels=32,kernel_size=5)        
         self.relu1 = nn.ReLU(inplace=True)
-        self.maxpool1 = nn.MaxPool2d(kernel_size=3,stride=1)
+        self.maxpool1 = nn.MaxPool2d(kernel_size=2,stride=2)
 
-        self.conv2 = nn.Conv2d(in_channels=32,out_channels=32,kernel_size=3,stride=1,padding=0,bias=True)        
+        self.conv2 = nn.Conv2d(in_channels=32,out_channels=64,kernel_size=5)        
         self.relu2 = nn.ReLU(inplace=True)
-        self.maxpool2 = nn.MaxPool2d(kernel_size=3,stride=1)
+        self.maxpool2 = nn.MaxPool2d(kernel_size=2,stride=2)
 
-        self.fc = nn.Linear(18432, target_encoder_out)
+        self.fc = nn.Linear(1600, target_encoder_out)
 
     def forward(self, x):
 
@@ -172,31 +172,36 @@ class SharedDecoder(nn.Module):
         super(SharedDecoder, self).__init__()
 
         self.fc = nn.Linear(shared_decoder_in, 300)
+        self.relu = nn.ReLU(inplace=True)
 
-        self.conv1 = nn.Conv2d(in_channels=3,out_channels=16,kernel_size=3,stride=1,padding=0,bias=True)
+        self.conv1 = nn.Conv2d(in_channels=3,out_channels=16,kernel_size=5)
         self.relu1 = nn.ReLU(inplace=True)
-        self.conv2 = nn.Conv2d(in_channels=16,out_channels=16,kernel_size=3,stride=1,padding=0,bias=True)
+        self.conv2 = nn.Conv2d(in_channels=16,out_channels=16,kernel_size=5)
         self.relu2 = nn.ReLU(inplace=True)
 
-        self.upsample = nn.ConvTranspose2d(in_channels=16, out_channels=16, kernel_size=3, stride=1)
+        self.upsample = nn.ConvTranspose2d(in_channels=16, out_channels=16, kernel_size=35)
 
-        self.conv3 = nn.Conv2d(in_channels=16,out_channels=16,kernel_size=3,stride=1,padding=0,bias=True)
+        self.conv3 = nn.Conv2d(in_channels=16,out_channels=16,kernel_size=3)
         self.relu3 = nn.ReLU(inplace=True)
 
-        self.conv4 = nn.Conv2d(in_channels=16,out_channels=3,kernel_size=3,stride=1,padding=0,bias=True)
+        self.conv4 = nn.Conv2d(in_channels=16,out_channels=3,kernel_size=3)
 
     def forward(self, x):
         # print (x.size())
         out = self.fc(x)
-        # print (out.size())
+        self.relu(out)
         out = out.view(out.size(0), 3,10,10)
 
+        # print (out.size())
         out = self.conv1(out)
         self.relu1(out)
+        # print (out.size())
         out = self.conv2(out)
         self.relu2(out)
+        # print (out.size())
 
         out = self.upsample(out)
+        # print (out.size())
 
         out = self.conv3(out)
         self.relu3(out)
@@ -222,7 +227,7 @@ def train(se,pe,sd,loader):
                 images=images.cuda()
                 labels=labels.cuda()
             # Forward + Backward + Optimize
-
+            print (images.size())
             optimizer.zero_grad()  # zero the gradient buffer
             outputs1 = pe(images)
             outputs2 = se(images)
