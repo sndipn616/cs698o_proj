@@ -1,0 +1,155 @@
+\documentclass{article} % For LaTeX2e
+\usepackage{nips_adapted,times}
+\usepackage{algorithm,algorithmic,amsmath}
+\usepackage{hyperref}
+\usepackage{url}
+\usepackage{amssymb}
+
+\title{Network Compression \\
+\large{Project Proposal}}
+
+
+\author{
+Sandipan Mandal \\
+13807616 \\
+\And
+Teekam Chand Mandan \\
+13744 
+}
+
+% The \author macro works with any number of authors. There are two commands
+% used to separate the names and addresses of multiple authors: \And and \AND.
+%
+% Using \And between authors leaves it to \LaTeX{} to determine where to break
+% the lines. Using \AND forces a linebreak at that point. So, if \LaTeX{}
+% puts 3 of 4 authors names on the first line, and the last on the second
+% line, try using \AND instead of \And before the third author name.
+
+\newcommand{\fix}{\marginpar{FIX}}
+\newcommand{\new}{\marginpar{NEW}}
+
+\nipsfinalcopy
+
+\begin{document}
+
+
+\maketitle
+
+\section{Problem Description}
+    Our project was to survey (read and understand) some literature on Stochastic Variational Inference (SVI), and then after we have understood the concepts, to apply SVI on a model on which it has not yet been applied. 
+
+\section{Literature Survey}
+
+    \subsection{Introduction}
+
+        One of the central tasks in Bayesian Machine Learning is to compute the posterior distribution given data and prior. However in most of the real world scenario computing this posterior is intractable. One of the the popular techniques is \textbf{Variational Inference}, in which we minimize the KL-divergence b/w a family of distributions $q(\theta|\lambda)$ and the posterior $p(\theta|X)$, to approximate p via q. Variational Inference in its batch setting is often not scalable to large datasets. Fortunately Variational Inference can done in stochastic setting. In the next subsection we review \textbf{Stochastic Variational Inference}. 
+    
+    \subsection{Stochastic Variational Inference}
+
+        In this subsection we briefly review stochastic variational inference \cite{svi}.\\\\
+        Our class of models involves observations, global hidden variables, local hidden variables, and fixed
+        parameters. The N observations are $x = x_{1:N}$ ; the vector of global hidden variables is $\beta$; the N local hidden variables are $z = z_{1:N}$, each of which is a collection of J variables $z_n = z_{n,1:J}$ ; the vector of fixed parameters is $\alpha$. The idea and general algorithm has been discussed in the class-lecture 15.\\
+        
+        The paper assumes that the complete conditional on the hidden variables are from the exponential family.
+        $$p(\beta | x,z,\alpha) = h(\beta)exp[\eta_g(x,z,\alpha)^T t(\beta) - a_g(\eta_g(x,z,\alpha))] $$
+        $$p(z_n_j | x_n, z_n_,_-_j, \beta ) = h(z_n_j)exp[\eta_l(x_n, z_n_,_-_j, \beta)^T t(z_n_j) - a_g(\eta_l(x_n, z_n_,_-_j, \beta))]$$
+        Assume $q(\beta | \lambda)$ and $q(z_{nj} | \phi_{nj})$ to be variational distribution. Using mean field assumption $$q(z, \beta) = q(\beta | \lambda)\prod_{n=1}^N \prod_{j=1}^J q(z_{nj} | \phi_{nj}) $$ We further assume that the variational distributions are in the same exponential family as the complete conditional. $$q(\beta | \lambda) = h(\beta)exp[\lambda^Tt(\beta) - a_g(\lambda)] $$
+        $$q(z_{nj} | \phi_{nj}) = h(z_{nj})exp[ \phi_{nj}^Tt( z_{nj}) - a_l( \phi_{nj}) ]$$.
+        
+        In batch setting computing the Evidence Lower Bound, differentiating w.r.t variational parameters and setting it to zero we get $$\lambda = \mathbb{E}_q[\eta_g(x,z,\alpha)]$$ $$\phi_{nj} = \mathbb{E}_q[\eta_l(x_n, z_{n,-j}, \beta)]$$
+        In stochastic setting, we sample a data point $x_i$ from the dataset at each iteration. Then we compute the local variational parameter $\phi_i$ (corresponding to $x_i$) as$$\phi_{i} = \mathbb{E}_{\lambda^{(t-1)}}[\eta_g(x_i^{(N)}, z_i^{(N)})]$$ where $\lambda^{(t-1)}$ is the optimal value of $\lambda$ from the previous iteration.\\
+        For global variational parameter we compute an intermedite paramater $\hat{\lambda}$ as $$\hat{\lambda} = \mathbb{E}_{\phi_i}[\eta_g(x_i^{(N)}, z_i^{(N)})]$$ and update current best $\lambda$ as $$\lambda^{(t)} = (1-\rho_t)\lambda^{(t-1)} + \rho_t \hat{\lambda}$$ where $(x_i^{(N)}, z_i^{(N)})$ is a data set consisting of $(x_i,z_i)$ replicated N times and $\rho_t$ is the learning rate. \\
+        The algorithm is summarized in Algorithm \ref{stoch-vi}. Instead of one random sample we can take a minibatch of random samples.
+
+        \begin{algorithm}
+            \caption{Stochastic variational inference for Exponential Family. 
+            \label{stoch-vi}}
+            \begin{algorithmic}
+                \STATE Initialize $\lambda^{(0)}$ randomly.
+                \STATE Set step size $\rho_t$ appropriately.
+                \REPEAT
+                \STATE \hspace{1cm} Sample a data point $x_i$ from the dataset.
+                \STATE \hspace{1cm} Compute its local variational parameter. $$\phi_{i} = \mathbb{E}_{\lambda^{(t-1)}}[\eta_g(x_i^{(N)}, z_i^{(N)})]$$
+                \STATE \hspace{1cm} Compute intermediate global parameters as though $x_i$ is replicated N times $$\hat{\lambda} = \mathbb{E}_{\phi_i}[\eta_g(x_i^{(N)}, z_i^{(N)})]$$
+                \STATE \hspace{1cm} Update the current estimate of the global variational parameters $$\lambda^{(t)} = (1-\rho_t)\lambda^{(t-1)} + \rho_t \hat{\lambda}$$
+                \UNTIL{forever}
+            \end{algorithmic}
+        \end{algorithm}
+        
+    \subsection{LDA Topic Model}
+    Topic models are probabilistic models of document collections that use latent variables to encode recurring patterns of word use. In this subsection we review SVI for LDA topic model given in \cite{svi}.\\
+    \begin{itemize}
+        \item Observations are words, organized into documents. 
+        \item The global hidden variables are the topics. 
+        \item There are two sets of local hidden variables - one for topic proportion of each document and the other topic assignment of each word. 
+        \item LDA assumes we know the number of topics - K in advance. 
+    \end{itemize}
+    The topics are drawn from Dirichlet distribution and for each document topic proportion is drawn from another dirichlet distribution. The words and its topic assignment are drawn from Multinomial distribution. \\
+    Only difference it has with standard SVI is that it has two set of local variables. We sample a document randomly from the dataset. For each word we compute local variable corresponding to topic proportion and topic assignment alternatively until convergence. After that the global variable is updated as in standard SVI. \\
+    The paper also reports that Stochastic variational inference on the full data converges faster and to a better place than batch variational inference on a reasonably sized
+subset.
+    
+
+        
+       
+    \subsection{Black Box Variational Inference}
+        \cite{svi} makes an additional assumption of conjugacy amongst the components of $q(\beta|\lambda)$ obtained via Mean Field Assumption. However, this reduces the possible kinds of models which can be tested. \cite{blackboxVI} modifies the global parameter update step of SVI algorithm by approximating gradients (here they are not using natural gradients, just normal gradients over hyperparameters) using $S$ monte-carlo samples from $q$. This helps in escaping calculation of local parameters, and, more importantly, from calculating the $\mathbb{E}_q(.)$, which is usually intractable in the absence of conjugacy.
+
+            \begin{algorithm}
+               \caption{Black Box Variational Inference}
+               \label{alg:basic}
+            \begin{algorithmic}
+             \STATE {\bfseries Input:} data $x$, joint distribution $p$, mean field variational family $q$.
+             \STATE {\bfseries Initialize} $\lambda_{1:n}$ randomly, $t = 1$.
+              \REPEAT
+            
+              \STATE  {\bfseries // Draw $S$ samples from $q$}
+               \FOR{$s=1$ {\bfseries to} S}
+                 \STATE $z[s]\sim q$
+               \ENDFOR
+               \STATE $\rho$ = $t$th value of a Robbins Monro sequence (\myeqp{rm})
+               \STATE $\lambda$ = $\lambda + \rho \frac{1}{S} \sum_{s=1}^S \nabla_{\lambda} \log q(z[s] | \lambda) (\log p(x, z[s]) - \log q(z[s] | \lambda))$
+               \STATE $t = t+1$ 
+             \UNTIL{change of $\lambda$ is less than 0.01.}
+            \end{algorithmic}
+          \end{algorithm}
+    
+        Seeing the algorithm we can easily observe that $q(z_i|\beta,z_{-i})$ are used separately, and so we don't need conjugacy at all. The algorithm is fast and only assumes the capability of calculating $p(x,z[s])$, $z[s]\sim q$ along with knowledge of $\log q(z[s] | \lambda)$. This allows us to test a vast no. of different models to choose the one that fits the data best. The estimate of gradient is unbiased, and to reduce its variance, authors modify the basic algorithm, by consecutively using \textbf{Rao-Blackwellization} and \textbf{Control-Variates} to give a modified BBVI \cite{blackboxVI}. Finally, they emperically show their method superior to Gibbs Sampling on a dataset, and then show the 'black-boxedness' by doing inferences on a medical-dataset using various non-conjugate models like Gamma-Gamma, Gamma-Normal, etc. 
+       
+    \subsection{Streaming Variational Bayes}
+       SVI is based on the conceptual existence of a full data set containing D points, for a fixed value of D. The posterior being targeted is based on the D data points and posterior for $D'$ points, $D' \neq D$, is not obtained as a part of this process.  
+       \cite{streamVI} develops a truly streaming procedure, in the sense that it yields an approximate posterior for each collection of $D'$ obtained data points. Also, this method makes use of distributed and asynchronous computations. 
+       
+       \subsubsection{Streaming Bayesian Updating}
+       If $\Theta$ is the set of parameters and $C_{i}$ is the $i^{th}$ minibatch of data, then the posterior after observing b minibatches is calculated as follows:
+       
+       \begin{center}$p(\Theta|C_{1},...,C_{b}) \propto p(C_{b}|\Theta)p(\Theta|C_{1},...,C_{b-1}) $
+       \end{center}
+       
+       The above equation holds if the two distributions on the LHS are conjugate to each other. $p(\Theta|C_{1},...,C_{b-1})$ acts as the prior over $\Theta$ after (b-1) minibatches have been observed.\\
+       When posteriors cannot be computed exactly, a case often encountered, approximation algorithms are used.
+    
+       \subsubsection{Distributed Bayesian Updating}
+       Posterior calculations can be made faster by parallelizing computations. Making use of Bayes theorem, the algorithm can be made to calculate posteriors for individual minibatches and then combine them to get the full posterior.
+       
+       \subsubsection{Asynchronous Bayesian Updating}
+       To maximize the potential gains from distributed computation, asynchronous updating is used. \\
+       In this case, processors called \textit{workers} are each assigned a subproblem (calculating posterior for a minibatch). When a worker finishes, it reports its results to a single \textit{master} processor. The master gives the worker a new problem without waiting for other workers to finish the work.
+       
+        
+\section{Summarising our Progress}
+    We have surveyed some recent papers related to the field of SVI. We now understand:
+    \begin{itemize}
+        \item the basic concept of SVI, its extension to exponential families, its application to the problem of LDA, from \cite{svi} (and also from the lecture in class).
+        \item Read about how to set good learning rate \cite{ranganath2013adaptive} for faster convergence and better results.
+        \item BBVI: Modification of basic SVI algorithm by estimating gradient via S monte-carlo samples from $q(\lambda|x)$, so that it becomes a Black Box Inference algorithm\cite{blackboxVI} .
+        \item Streaming VB: Updates the posterior as new batch of data comes in, with no fixed data set size
+        \item We have also explored the python library Edward. It has APIs for SVI, BBVI, etc. 
+        
+    \end{itemize}    
+    So after this study we feel comfortable with basic concepts of SVI and some of their extensions. As we mentioned in our proposal that we'll be reading and surveying literature for 4-5 weeks. We believe that the survey part is now over, and hence our next target is quickly picking up a new model on which SVI has not been yet applied, and then working on it for the rest of the time.  
+
+\bibliography{698o_project}
+\bibliographystyle{plain}
+
+\end{document}
