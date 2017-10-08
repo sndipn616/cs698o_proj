@@ -34,6 +34,22 @@ labels.read(4)
 NumLabels = labels.read(4)
 NumLabels = unpack('>I', NumLabels)[0]
 
+testImages = gzip.open(data_dir + "t10k-images-idx3-ubyte.gz", 'rb')
+testLabels = gzip.open(data_dir + "t10k-labels-idx1-ubyte.gz", 'rb')
+
+testImages.read(4)
+NumImages2 = testImages.read(4)
+NumImages2 = unpack('>I', NumImages2)[0]
+
+NumRows2 = testImages.read(4)
+NumRows2 = unpack('>I', NumRows2)[0]
+NumColumns2 = testImages.read(4)
+NumColumns2 = unpack('>I', NumColumns2)[0]
+
+testLabels.read(4)  
+NumLabels2 = testLabels.read(4)
+NumLabels2 = unpack('>I', NumLabels2)[0]
+
 # pickle_file = 'notMNIST.pickle'
 
 # with open(pickle_file, 'rb') as f:
@@ -133,7 +149,7 @@ with graph.as_default():
     # Fully Connected Layer (Densely Connected Layer)
     # Use neurons to allow processing of entire image
     # final_image_size = output_size_no_pool(image_size, patch_size, padding='same', conv_stride=2)
-    final_image_size = 7
+    final_image_size = 4
     layer4_weights = tf.Variable(tf.truncated_normal([final_image_size * final_image_size * depth, num_hidden], stddev=0.1))    
     layer4_biases = tf.Variable(tf.constant(1.0, shape=[num_hidden]))
     
@@ -141,38 +157,39 @@ with graph.as_default():
     layer5_weights = tf.Variable(tf.truncated_normal([num_hidden, num_labels], stddev=0.1))
     layer5_biases = tf.Variable(tf.constant(1.0, shape=[num_labels]))
 
+    data = tf_train_dataset
     '''Model'''
-    def teacher_model(data):
-        # First Convolutional Layer with Pooling
-        conv_1 = tf.nn.conv2d(data, layer1_weights, strides=[1, 1, 1, 1], padding='SAME')
-        hidden_1 = tf.nn.relu(conv_1 + layer1_biases)
-        pool_1 = tf.nn.max_pool(hidden_1, [1, 2, 2, 1], [1, 2, 2, 1], padding='SAME')
-        
-        # Second Convolutional Layer with Pooling
-        conv_2 = tf.nn.conv2d(pool_1, layer2_weights, strides=[1, 1, 1, 1], padding='SAME')
-        hidden_2 = tf.nn.relu(conv_2 + layer2_biases)
-        pool_2 = tf.nn.max_pool(hidden_2, [1, 2, 2, 1], [1, 2, 2, 1], padding='SAME')
+    # def teacher_model(data):
+      # First Convolutional Layer with Pooling
+    conv_1 = tf.nn.conv2d(data, layer1_weights, strides=[1, 1, 1, 1], padding='SAME')
+    hidden_1 = tf.nn.relu(conv_1 + layer1_biases)
+    pool_1 = tf.nn.max_pool(hidden_1, [1, 2, 2, 1], [1, 2, 2, 1], padding='SAME')
+    
+    # Second Convolutional Layer with Pooling
+    conv_2 = tf.nn.conv2d(pool_1, layer2_weights, strides=[1, 1, 1, 1], padding='SAME')
+    hidden_2 = tf.nn.relu(conv_2 + layer2_biases)
+    pool_2 = tf.nn.max_pool(hidden_2, [1, 2, 2, 1], [1, 2, 2, 1], padding='SAME')
 
-        # print ("Pool2")
-        # print (pool_2.get_shape())
-        # Third Convolutional Layer with Pooling
-        conv_3 = tf.nn.conv2d(pool_2, layer3_weights, strides=[1, 1, 1, 1], padding='SAME')
-        hidden_3 = tf.nn.relu(conv_3 + layer3_biases)
-        pool_3 = tf.nn.max_pool(hidden_3, [1, 2, 2, 1], [1, 2, 2, 1], padding='SAME')
+    # print ("Pool2")
+    # print (pool_2.get_shape())
+    # Third Convolutional Layer with Pooling
+    conv_3 = tf.nn.conv2d(pool_2, layer3_weights, strides=[1, 1, 1, 1], padding='SAME')
+    hidden_3 = tf.nn.relu(conv_3 + layer3_biases)
+    pool_3 = tf.nn.max_pool(hidden_3, [1, 2, 2, 1], [1, 2, 2, 1], padding='SAME')
 
-        # print ("Pool3")
-        # print (pool_3.get_shape())
-        
-        # Full Connected Layer
-        shape = pool_2.get_shape().as_list()
-        reshape = tf.reshape(pool_2, [shape[0], shape[1] * shape[2] * shape[3]])
-        hidden = tf.nn.relu(tf.matmul(reshape, layer4_weights) + layer4_biases)
+    # print ("Pool3")
+    # print (pool_3.get_shape())
+    
+    # Full Connected Layer
+    shape = pool_3.get_shape().as_list()
+    reshape = tf.reshape(pool_3, [shape[0], shape[1] * shape[2] * shape[3]])
+    hidden = tf.nn.relu(tf.matmul(reshape, layer4_weights) + layer4_biases)
         
         # Readout Layer: Softmax Layer
-        return tf.matmul(hidden, layer5_weights) + layer5_biases
-
+        # return tf.matmul(hidden, layer5_weights) + layer5_biases
+    logits = tf.matmul(hidden, layer5_weights) + layer5_biases
     '''Training computation'''
-    logits = teacher_model(tf_train_dataset)
+    # logits = teacher_model(tf_train_dataset)
 
 #     loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits, tf_train_labels))
     loss = tf.reduce_mean(
@@ -180,12 +197,49 @@ with graph.as_default():
 
     '''Optimizer'''
     # Learning rate of 0.05
-    optimizer = tf.train.GradientDescentOptimizer(0.01).minimize(loss)
+    optimizer = tf.train.GradientDescentOptimizer(0.005).minimize(loss)
 
     '''Predictions for the training, validation, and test data'''
-    train_prediction = tf.nn.softmax(logits)
+    prediction = tf.nn.softmax(logits)
     # valid_prediction = tf.nn.softmax(teacher_model(tf_valid_dataset))
     # test_prediction = tf.nn.softmax(teacher_model(tf_test_dataset))
+
+
+def test_accuracy(session):
+  for i in range(NumLabels):      
+    CurrImage = np.zeros((NumRows,NumColumns), dtype=np.float32)
+    for row in range(NumRows2):
+      for col in range(NumColumns2):
+        pixelValue = images.read(1)  
+        pixelValue = unpack('>B', pixelValue)[0]
+        # print (pixelValue)
+        CurrImage[row][col] = pixelValue * 1.0
+        
+        
+    batch_data.append(CurrImage)
+    # print (CurrImage)
+    labelValue = labels.read(1)      
+    labelValue = unpack('>B', labelValue)[0]
+    batch_labels.append(labelValue)
+
+    count_in_batch += 1
+    if count_in_batch >= batch_size:
+      count_in_batch = 0
+      # CurrImage = np.zeros((batch_size,NumColumns), dtype=uint8)
+      minibatch_num += 1
+
+      batch_data = np.array(batch_data)
+      batch_labels = np.array(batch_labels)
+
+      new_batch_data, new_batch_labels = reformat(batch_data, batch_labels)
+
+      # print (new_batch_labels)
+      # print (new_batch_data.shape)
+      # print (new_batch_labels.shape)
+
+      batch_data = []
+      batch_labels = []
+
 
 
 with tf.device(current_device):
@@ -235,15 +289,17 @@ with tf.device(current_device):
         batch_labels = []
 
         feed_dict = {tf_train_dataset : new_batch_data, tf_train_labels : new_batch_labels}
-        _, l, predictions, log = session.run([optimizer, loss, train_prediction, logits], feed_dict=feed_dict)
+        _, l, predictions, log, c = session.run([optimizer, loss, prediction, logits, layer1_weights], feed_dict=feed_dict)
 
         if minibatch_num % 100 == 0:
-          print('Minibatch loss at step %d: %f' % (minibatch_num, l))
-          print (log)
-          # print (new_batch_data[new_batch_data != 0])
-          # print (predictions)
-          # print (new_batch_labels)
+          print('Minibatch loss at step %d: %f' % (minibatch_num, l))          
           print('Minibatch accuracy: %.1f%%' % accuracy(predictions, new_batch_labels))
+          
+
+    acc = test_accuracy(session)
+    print('Test accuracy: %.1f%%' % acc)
+
+
 
   # num_steps = 10000
   # if 'gpu' not in current_device:
