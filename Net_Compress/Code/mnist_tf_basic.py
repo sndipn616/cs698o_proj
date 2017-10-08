@@ -10,7 +10,7 @@ from six.moves import cPickle as pickle
 from six.moves import range
 from tensorflow.examples.tutorials.mnist import input_data
 
-# mnist = input_data.read_data_sets("MNIST_data/", validation_size=10000, one_hot=True)
+mnist = input_data.read_data_sets("MNIST_data/", validation_size=10000, one_hot=True)
 current_device = '/cpu:0'
 export_dir = 'MNIST_Models/'
 # model_saver = tf.saved_model.builder.SavedModelBuilder(export_dir)
@@ -63,9 +63,11 @@ def reformat(dataset, labels):
   dataset = dataset.reshape(
     (-1, image_size, image_size, num_channels)).astype(np.float32)
   labels = (np.arange(num_labels) == labels[:,None]).astype(np.float32)
+  # labels = np.arange(num_labels) == labels[:,None]
+
   return dataset, labels
 
-# train_dataset, train_labels = reformat(mnist.train.images, mnist.train.labels)
+train_dataset, train_labels = reformat(mnist.train.images, mnist.train.labels)
 # valid_dataset, valid_labels = reformat(mnist.validation.images, mnist.validation.labels)
 # test_dataset, test_labels = reformat(mnist.test.images, mnist.test.labels)
 
@@ -131,7 +133,7 @@ with graph.as_default():
     # Fully Connected Layer (Densely Connected Layer)
     # Use neurons to allow processing of entire image
     # final_image_size = output_size_no_pool(image_size, patch_size, padding='same', conv_stride=2)
-    final_image_size = 4
+    final_image_size = 7
     layer4_weights = tf.Variable(tf.truncated_normal([final_image_size * final_image_size * depth, num_hidden], stddev=0.1))    
     layer4_biases = tf.Variable(tf.constant(1.0, shape=[num_hidden]))
     
@@ -162,8 +164,8 @@ with graph.as_default():
         # print (pool_3.get_shape())
         
         # Full Connected Layer
-        shape = pool_3.get_shape().as_list()
-        reshape = tf.reshape(pool_3, [shape[0], shape[1] * shape[2] * shape[3]])
+        shape = pool_2.get_shape().as_list()
+        reshape = tf.reshape(pool_2, [shape[0], shape[1] * shape[2] * shape[3]])
         hidden = tf.nn.relu(tf.matmul(reshape, layer4_weights) + layer4_biases)
         
         # Readout Layer: Softmax Layer
@@ -171,13 +173,14 @@ with graph.as_default():
 
     '''Training computation'''
     logits = teacher_model(tf_train_dataset)
+
 #     loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits, tf_train_labels))
     loss = tf.reduce_mean(
     tf.nn.softmax_cross_entropy_with_logits(labels=tf_train_labels, logits=logits))
 
     '''Optimizer'''
     # Learning rate of 0.05
-    optimizer = tf.train.GradientDescentOptimizer(0.005).minimize(loss)
+    optimizer = tf.train.GradientDescentOptimizer(0.01).minimize(loss)
 
     '''Predictions for the training, validation, and test data'''
     train_prediction = tf.nn.softmax(logits)
@@ -186,9 +189,9 @@ with graph.as_default():
 
 
 with tf.device(current_device):
-  # num_steps = 10000
-  # if 'gpu' not in current_device:
-  #   num_steps = 5000
+#   # num_steps = 10000
+#   # if 'gpu' not in current_device:
+#   #   num_steps = 5000
 
   with tf.Session(graph=graph) as session:
     tf.global_variables_initializer().run()
@@ -198,15 +201,17 @@ with tf.device(current_device):
     count_in_batch = 0
     minibatch_num = 0
     for i in range(NumLabels):      
-      CurrImage = np.zeros((NumRows,NumColumns), dtype=uint8)
+      CurrImage = np.zeros((NumRows,NumColumns), dtype=np.float32)
       for row in range(NumRows):
         for col in range(NumColumns):
           pixelValue = images.read(1)  
           pixelValue = unpack('>B', pixelValue)[0]
+          # print (pixelValue)
+          CurrImage[row][col] = pixelValue * 1.0
           
           
       batch_data.append(CurrImage)
-      
+      # print (CurrImage)
       labelValue = labels.read(1)      
       labelValue = unpack('>B', labelValue)[0]
       batch_labels.append(labelValue)
@@ -214,7 +219,7 @@ with tf.device(current_device):
       count_in_batch += 1
       if count_in_batch >= batch_size:
         count_in_batch = 0
-        CurrImage = np.zeros((batch_size,NumColumns), dtype=uint8)
+        # CurrImage = np.zeros((batch_size,NumColumns), dtype=uint8)
         minibatch_num += 1
 
         batch_data = np.array(batch_data)
@@ -230,13 +235,20 @@ with tf.device(current_device):
         batch_labels = []
 
         feed_dict = {tf_train_dataset : new_batch_data, tf_train_labels : new_batch_labels}
-        _, l, predictions = session.run([optimizer, loss, train_prediction], feed_dict=feed_dict)
+        _, l, predictions, log = session.run([optimizer, loss, train_prediction, logits], feed_dict=feed_dict)
 
         if minibatch_num % 100 == 0:
           print('Minibatch loss at step %d: %f' % (minibatch_num, l))
+          print (log)
+          # print (new_batch_data[new_batch_data != 0])
+          # print (predictions)
+          # print (new_batch_labels)
           print('Minibatch accuracy: %.1f%%' % accuracy(predictions, new_batch_labels))
 
-    
+  # num_steps = 10000
+  # if 'gpu' not in current_device:
+  #   num_steps = 5000
+
   # with tf.Session(graph=graph) as session:
   #   tf.global_variables_initializer().run()
   #   # tf.saved_model.loader.load(session, [tag_constants.TRAINING], export_dir)
@@ -250,9 +262,11 @@ with tf.device(current_device):
   #       [optimizer, loss, train_prediction], feed_dict=feed_dict)
   #     if (step % 100 == 0):
   #       print('Minibatch loss at step %d: %f' % (step, l))
+  #       print (predictions)
+  #       print (batch_labels)
   #       print('Minibatch accuracy: %.1f%%' % accuracy(predictions, batch_labels))
-  #       print('Validation accuracy: %.1f%%' % accuracy(
-  #         valid_prediction.eval(), valid_labels))
+        # print('Validation accuracy: %.1f%%' % accuracy(
+        #   valid_prediction.eval(), valid_labels))
 
   #   model_saver = tf.train.Saver()
   #   model_saver.save(session, export_dir + model_name, write_meta_graph=False)
