@@ -18,21 +18,26 @@ export_dir = 'MNIST_Models/'
 model_name = 'mnist_tf_basic'
 data_dir = 'MNIST_data/'
 
-images = gzip.open(data_dir + "train-images-idx3-ubyte.gz", 'rb')
-labels = gzip.open(data_dir + "train-labels-idx1-ubyte.gz", 'rb')
+def return_pointers():
+  images = gzip.open(data_dir + "train-images-idx3-ubyte.gz", 'rb')
+  labels = gzip.open(data_dir + "train-labels-idx1-ubyte.gz", 'rb')
 
-images.read(4)
-NumImages = images.read(4)
-NumImages = unpack('>I', NumImages)[0]
-# NumImages = 10000
-NumRows = images.read(4)
-NumRows = unpack('>I', NumRows)[0]
-NumColumns = images.read(4)
-NumColumns = unpack('>I', NumColumns)[0]
+  images.read(4)
+  NumImages = images.read(4)
+  NumImages = unpack('>I', NumImages)[0]
+  # NumImages = 10000
+  NumRows = images.read(4)
+  NumRows = unpack('>I', NumRows)[0]
+  NumColumns = images.read(4)
+  NumColumns = unpack('>I', NumColumns)[0]
 
-labels.read(4)  
-NumLabels = labels.read(4)
-NumLabels = unpack('>I', NumLabels)[0]
+  
+
+  labels.read(4)  
+  NumLabels = labels.read(4)
+  NumLabels = unpack('>I', NumLabels)[0]
+
+  return images, labels, NumLabels, NumRows, NumColumns
 
 testImages = gzip.open(data_dir + "t10k-images-idx3-ubyte.gz", 'rb')
 testLabels = gzip.open(data_dir + "t10k-labels-idx1-ubyte.gz", 'rb')
@@ -117,6 +122,7 @@ batch_size = 10
 patch_size = 5
 depth = 16
 num_hidden = 64
+num_epochs = 2
 
 graph = tf.Graph()
 
@@ -200,7 +206,7 @@ with graph.as_default():
 
     '''Optimizer'''
     # Learning rate of 0.05
-    optimizer = tf.train.GradientDescentOptimizer(0.005).minimize(loss)
+    optimizer = tf.train.GradientDescentOptimizer(0.0025).minimize(loss)
 
     '''Predictions for the training, validation, and test data'''
     prediction = tf.nn.softmax(logits)
@@ -211,6 +217,7 @@ with graph.as_default():
 def test_accuracy(session):
   correct = 0
   total = 0
+
   batch_data = []
   batch_labels = []
   count_in_batch = 0
@@ -266,50 +273,55 @@ with tf.device(current_device):
   with tf.Session(graph=graph) as session:
     tf.global_variables_initializer().run()
     print('Initialized')
-    batch_data = []
-    batch_labels = []
-    count_in_batch = 0
-    minibatch_num = 0
-    for i in range(NumLabels):      
-      CurrImage = np.zeros((NumRows,NumColumns), dtype=np.float32)
-      for row in range(NumRows):
-        for col in range(NumColumns):
-          pixelValue = images.read(1)  
-          pixelValue = unpack('>B', pixelValue)[0]
-          # print (pixelValue)
-          CurrImage[row][col] = pixelValue * 1.0
-          
-          
-      batch_data.append(CurrImage)
-      # print (CurrImage)
-      labelValue = labels.read(1)      
-      labelValue = unpack('>B', labelValue)[0]
-      batch_labels.append(labelValue)
+    for epoch in range(num_epochs):
+      batch_data = []
+      batch_labels = []
+      count_in_batch = 0
+      minibatch_num = 0
+      images, labels, NumLabels, NumRows, NumColumns = return_pointers()
+      for i in range(NumLabels):      
+        CurrImage = np.zeros((NumRows,NumColumns), dtype=np.float32)
+        for row in range(NumRows):
+          for col in range(NumColumns):
+            pixelValue = images.read(1)  
+            pixelValue = unpack('>B', pixelValue)[0]
+            # print (pixelValue)
+            CurrImage[row][col] = pixelValue * 1.0
+            
+            
+        batch_data.append(CurrImage)
+        # print (CurrImage)
+        labelValue = labels.read(1)      
+        labelValue = unpack('>B', labelValue)[0]
+        batch_labels.append(labelValue)
 
-      count_in_batch += 1
-      if count_in_batch >= batch_size:
-        count_in_batch = 0
-        # CurrImage = np.zeros((batch_size,NumColumns), dtype=uint8)
-        minibatch_num += 1
+        count_in_batch += 1
+        if count_in_batch >= batch_size:
+          count_in_batch = 0
+          # CurrImage = np.zeros((batch_size,NumColumns), dtype=uint8)
+          minibatch_num += 1
 
-        batch_data = np.array(batch_data)
-        batch_labels = np.array(batch_labels)
+          batch_data = np.array(batch_data)
+          batch_labels = np.array(batch_labels)
 
-        new_batch_data, new_batch_labels = reformat(batch_data, batch_labels)
+          new_batch_data, new_batch_labels = reformat(batch_data, batch_labels)
 
-        # print (new_batch_labels)
-        # print (new_batch_data.shape)
-        # print (new_batch_labels.shape)
+          # print (new_batch_labels)
+          # print (new_batch_data.shape)
+          # print (new_batch_labels.shape)
 
-        batch_data = []
-        batch_labels = []
+          batch_data = []
+          batch_labels = []
 
-        feed_dict = {tf_train_dataset : new_batch_data, tf_train_labels : new_batch_labels}
-        _, l, predictions, log, c = session.run([optimizer, loss, prediction, logits, layer1_weights], feed_dict=feed_dict)
+          feed_dict = {tf_train_dataset : new_batch_data, tf_train_labels : new_batch_labels}
+          _, l, predictions, log, c = session.run([optimizer, loss, prediction, logits, layer1_weights], feed_dict=feed_dict)
 
-        if minibatch_num % 100 == 0:
-          print('Minibatch loss at step %d: %f' % (minibatch_num, l))          
-          print('Minibatch accuracy: %.1f%%' % accuracy(predictions, new_batch_labels))
+          if minibatch_num % 100 == 0:
+            print('Minibatch loss at step %d: %f' % (minibatch_num, l))          
+            print('Minibatch accuracy: %.1f%%' % accuracy(predictions, new_batch_labels))
+
+      images.close()
+      labels.close()
           
 
     acc = test_accuracy(session)
