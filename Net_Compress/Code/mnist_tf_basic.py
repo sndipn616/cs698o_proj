@@ -97,6 +97,9 @@ def accuracy(predictions, labels):
   return (100.0 * np.sum(np.argmax(predictions, 1) == np.argmax(labels, 1))
           / predictions.shape[0])
 
+def num_correct_total(predictions, labels):
+  return np.sum(np.argmax(predictions, 1) == np.argmax(labels, 1)), predictions.shape[0]
+
 
 def output_size_no_pool(input_size, filter_size, padding, conv_stride):
     if padding == 'same':
@@ -206,11 +209,17 @@ with graph.as_default():
 
 
 def test_accuracy(session):
-  for i in range(NumLabels):      
+  correct = 0
+  total = 0
+  batch_data = []
+  batch_labels = []
+  count_in_batch = 0
+  minibatch_num = 0
+  for i in range(NumLabels2):      
     CurrImage = np.zeros((NumRows,NumColumns), dtype=np.float32)
     for row in range(NumRows2):
       for col in range(NumColumns2):
-        pixelValue = images.read(1)  
+        pixelValue = testImages.read(1)  
         pixelValue = unpack('>B', pixelValue)[0]
         # print (pixelValue)
         CurrImage[row][col] = pixelValue * 1.0
@@ -218,7 +227,7 @@ def test_accuracy(session):
         
     batch_data.append(CurrImage)
     # print (CurrImage)
-    labelValue = labels.read(1)      
+    labelValue = testLabels.read(1)      
     labelValue = unpack('>B', labelValue)[0]
     batch_labels.append(labelValue)
 
@@ -240,7 +249,14 @@ def test_accuracy(session):
       batch_data = []
       batch_labels = []
 
+      feed_dict = {tf_train_dataset : new_batch_data, tf_train_labels : new_batch_labels}
+      [predictions] = session.run([prediction], feed_dict=feed_dict)
 
+      c, t = num_correct_total(predictions, new_batch_labels)
+      correct += c
+      total += t
+
+  return 100.0 * correct / total
 
 with tf.device(current_device):
 #   # num_steps = 10000
