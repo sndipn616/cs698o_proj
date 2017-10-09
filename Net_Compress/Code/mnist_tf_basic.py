@@ -119,10 +119,11 @@ def output_size_no_pool(input_size, filter_size, padding, conv_stride):
 
 
 batch_size = 10
-patch_size = 5
-depth = 16
+patch_size = 3
+depth = 32
 num_hidden = 64
-num_epochs = 2
+num_epochs = 3
+alpha = 0.005
 
 graph = tf.Graph()
 
@@ -136,82 +137,109 @@ with graph.as_default():
     # tf_test_dataset = tf.placeholder(tf.float32, shape=(batch_size, image_size, image_size, num_channels))
     # tf_test_labels = tf.placeholder(tf.float32, shape=(batch_size, num_labels))
 
-    '''Variables'''
+    '''Variables For Teacher'''
     # Convolution 1 Layer
     # Input channels: num_channels = 1
     # Output channels: depth = 16
-    layer1_weights = tf.Variable(tf.truncated_normal([patch_size, patch_size, num_channels, depth], stddev=0.1))
-    layer1_biases = tf.Variable(tf.zeros([depth]))
+    layer1_weights_teacher = tf.Variable(tf.truncated_normal([patch_size, patch_size, num_channels, depth], stddev=0.1))
+    layer1_biases_teacher = tf.Variable(tf.zeros([depth]))
     
     # Convolution 2 Layer
     # Input channels: depth = 16
     # Output channels: depth = 16
-    layer2_weights = tf.Variable(tf.truncated_normal([patch_size, patch_size, depth, depth], stddev=0.1))
-    layer2_biases = tf.Variable(tf.constant(1.0, shape=[depth]))
+    layer2_weights_teacher = tf.Variable(tf.truncated_normal([patch_size, patch_size, depth, depth], stddev=0.1))
+    layer2_biases_teacher = tf.Variable(tf.constant(1.0, shape=[depth]))
 
     # Convolution 3 Layer
     # Input channels: depth = 16
     # Output channels: depth = 16
-    layer3_weights = tf.Variable(tf.truncated_normal([patch_size, patch_size, depth, depth], stddev=0.1))
-    layer3_biases = tf.Variable(tf.constant(1.0, shape=[depth]))
+    layer3_weights_teacher = tf.Variable(tf.truncated_normal([patch_size, patch_size, depth, depth], stddev=0.1))
+    layer3_biases_teacher = tf.Variable(tf.constant(1.0, shape=[depth]))
+
+    # Convolution 4 Layer
+    # Input channels: depth = 16
+    # Output channels: depth = 16
+    layer4_weights_teacher = tf.Variable(tf.truncated_normal([patch_size, patch_size, depth, depth], stddev=0.1))
+    layer4_biases_teacher = tf.Variable(tf.constant(1.0, shape=[depth]))
     
     # Fully Connected Layer (Densely Connected Layer)
     # Use neurons to allow processing of entire image
     # final_image_size = output_size_no_pool(image_size, patch_size, padding='same', conv_stride=2)
-    final_image_size = 4
-    layer4_weights = tf.Variable(tf.truncated_normal([final_image_size * final_image_size * depth, num_hidden], stddev=0.1))    
-    layer4_biases = tf.Variable(tf.constant(1.0, shape=[num_hidden]))
+    final_image_size = 28
+    layerfc_weights_teacher = tf.Variable(tf.truncated_normal([final_image_size * final_image_size * depth, num_hidden], stddev=0.1))    
+    layerfc_biases_teacher = tf.Variable(tf.constant(1.0, shape=[num_hidden]))
     
     # Readout layer: Softmax Layer
-    layer5_weights = tf.Variable(tf.truncated_normal([num_hidden, num_labels], stddev=0.1))
-    layer5_biases = tf.Variable(tf.constant(1.0, shape=[num_labels]))
+    layersm_weights_teacher = tf.Variable(tf.truncated_normal([num_hidden, num_labels], stddev=0.1))
+    layersm_biases_teacher = tf.Variable(tf.constant(1.0, shape=[num_labels]))
 
-    data = tf_train_dataset
-    '''Model'''
-    # def teacher_model(data):
-      # First Convolutional Layer with Pooling
-    conv_1 = tf.nn.conv2d(data, layer1_weights, strides=[1, 1, 1, 1], padding='SAME')
-    hidden_1 = tf.nn.relu(conv_1 + layer1_biases)
-    pool_1 = tf.nn.max_pool(hidden_1, [1, 2, 2, 1], [1, 2, 2, 1], padding='SAME')
-    
-    # Second Convolutional Layer with Pooling
-    conv_2 = tf.nn.conv2d(pool_1, layer2_weights, strides=[1, 1, 1, 1], padding='SAME')
-    hidden_2 = tf.nn.relu(conv_2 + layer2_biases)
-    pool_2 = tf.nn.max_pool(hidden_2, [1, 2, 2, 1], [1, 2, 2, 1], padding='SAME')
+    # data = tf_train_dataset
+    '''Teacher Model'''
+    def teacher_model(data,train=True):
+        # First Convolutional Layer with Pooling
+      conv_1 = tf.nn.conv2d(data, layer1_weights_teacher, strides=[1, 1, 1, 1], padding='SAME')
+      hidden_1 = tf.nn.relu(conv_1 + layer1_biases_teacher)
+      pool_1 = tf.nn.max_pool(hidden_1, [1, 2, 2, 1], [1, 1, 1, 1], padding='SAME')
+      
+      # Second Convolutional Layer with Pooling
+      conv_2 = tf.nn.conv2d(pool_1, layer2_weights_teacher, strides=[1, 1, 1, 1], padding='SAME')
+      hidden_2 = tf.nn.relu(conv_2 + layer2_biases_teacher)
+      pool_2 = tf.nn.max_pool(hidden_2, [1, 2, 2, 1], [1, 1, 1, 1], padding='SAME')
 
-    # print ("Pool2")
-    # print (pool_2.get_shape())
-    # Third Convolutional Layer with Pooling
-    conv_3 = tf.nn.conv2d(pool_2, layer3_weights, strides=[1, 1, 1, 1], padding='SAME')
-    hidden_3 = tf.nn.relu(conv_3 + layer3_biases)
-    pool_3 = tf.nn.max_pool(hidden_3, [1, 2, 2, 1], [1, 2, 2, 1], padding='SAME')
+      # print ("Pool2")
+      # print (pool_2.get_shape())
+      # Third Convolutional Layer with Pooling
+      conv_3 = tf.nn.conv2d(pool_2, layer3_weights_teacher, strides=[1, 1, 1, 1], padding='SAME')
+      hidden_3 = tf.nn.relu(conv_3 + layer3_biases_teacher)
+      pool_3 = tf.nn.max_pool(hidden_3, [1, 2, 2, 1], [1, 1, 1, 1], padding='SAME')
 
-    # print ("Pool3")
-    # print (pool_3.get_shape())
-    
-    # Full Connected Layer
-    shape = pool_3.get_shape().as_list()
-    reshape = tf.reshape(pool_3, [shape[0], shape[1] * shape[2] * shape[3]])
-    hidden = tf.nn.relu(tf.matmul(reshape, layer4_weights) + layer4_biases)
+      # Fourth Convolutional Layer with Pooling
+      conv_4 = tf.nn.conv2d(pool_2, layer3_weights_teacher, strides=[1, 1, 1, 1], padding='SAME')
+      hidden_4 = tf.nn.relu(conv_3 + layer3_biases_teacher)
+      pool_4 = tf.nn.max_pool(hidden_3, [1, 2, 2, 1], [1, 1, 1, 1], padding='SAME')
+     
+
+      # print ("Pool3")
+      # print (pool_3.get_shape())
+      
+      # Full Connected Layer
+      # print (pool_3.get_shape())
+      shape = pool_4.get_shape().as_list()
+      reshape = tf.reshape(pool_4, [shape[0], shape[1] * shape[2] * shape[3]])
+      hidden = tf.nn.relu(tf.matmul(reshape, layerfc_weights_teacher) + layerfc_biases_teacher)
         
         # Readout Layer: Softmax Layer
-        # return tf.matmul(hidden, layer5_weights) + layer5_biases
-    logits = tf.matmul(hidden, layer5_weights) + layer5_biases
+      return tf.matmul(hidden, layersm_weights_teacher) + layersm_biases_teacher
+    # logits = tf.matmul(hidden, layersm_weights_teacher) + layersm_biases_teacher
     '''Training computation'''
-    # logits = teacher_model(tf_train_dataset)
+    logits = teacher_model(tf_train_dataset)
 
-#     loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits, tf_train_labels))
+    # loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=logits, labels=tf_train_labels))
     loss = tf.reduce_mean(
-    tf.nn.softmax_cross_entropy_with_logits(labels=tf_train_labels, logits=logits))
+    tf.nn.softmax_cross_entropy_with_logits(labels=tf_train_labels, logits=logits)) #\
+     # + alpha * (tf.nn.l2_loss(layer1_weights_teacher) + tf.nn.l2_loss(layer2_weights_teacher) + tf.nn.l2_loss(layer3_weights_teacher) \
+     # + tf.nn.l2_loss(layerfc_weights_teacher) + tf.nn.l2_loss(layersm_weights_teacher))
 
     '''Optimizer'''
     # Learning rate of 0.05
-    optimizer = tf.train.GradientDescentOptimizer(0.0025).minimize(loss)
+    optimizer = tf.train.GradientDescentOptimizer(0.001).minimize(loss)
 
     '''Predictions for the training, validation, and test data'''
     prediction = tf.nn.softmax(logits)
     # valid_prediction = tf.nn.softmax(teacher_model(tf_valid_dataset))
     # test_prediction = tf.nn.softmax(teacher_model(tf_test_dataset))
+
+    '''Student Model'''
+    # Convolution 1 Layer
+    # Input channels: num_channels = 1
+    # Output channels: depth = 16
+    # layer1_weights_student = tf.Variable(tf.truncated_normal([patch_size, patch_size, num_channels, depth], stddev=0.1))
+    # layer1_biases_student = tf.Variable(tf.zeros([depth]))
+
+    # def student_model(data,train=True):
+
+
+
 
 
 def test_accuracy(session):
@@ -314,7 +342,7 @@ with tf.device(current_device):
           batch_labels = []
 
           feed_dict = {tf_train_dataset : new_batch_data, tf_train_labels : new_batch_labels}
-          _, l, predictions, log, c = session.run([optimizer, loss, prediction, logits, layer1_weights], feed_dict=feed_dict)
+          _, l, predictions = session.run([optimizer, loss, prediction], feed_dict=feed_dict)
 
           if minibatch_num % 100 == 0:
             print('Minibatch loss at step %d: %f' % (minibatch_num, l))          
@@ -323,6 +351,9 @@ with tf.device(current_device):
       images.close()
       labels.close()
           
+
+    model_saver = tf.train.Saver()
+    model_saver.save(session, export_dir + model_name, write_meta_graph=True)
 
     acc = test_accuracy(session)
     print('Test accuracy: %.1f%%' % acc)
