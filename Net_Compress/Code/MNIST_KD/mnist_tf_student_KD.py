@@ -151,8 +151,8 @@ def test_accuracy(session):
 
   return 100.0 * correct / total
 
-def Train_Student(session):  
-  for epoch in range(num_epochs):
+def Train_Teacher(session):  
+  for epoch in range(num_epochs_teacher):
     batch_data = []
     batch_labels = []
     count_in_batch = 0
@@ -189,7 +189,7 @@ def Train_Student(session):
         batch_labels = []
 
         feed_dict = {tf_train_dataset : new_batch_data, tf_train_labels : new_batch_labels}
-        _, l, predictions = session.run([optimizer, loss, prediction], feed_dict=feed_dict)
+        _, l, predictions = session.run([optimizer_teacher, loss_teacher, prediction_teacher_train], feed_dict=feed_dict)
 
         if minibatch_num % 100 == 0:
           print('Minibatch loss at step %d: %f' % (minibatch_num, l))          
@@ -203,7 +203,7 @@ def Train_Student(session):
   model_saver.save(session, export_dir + model_name_save_teacher, write_meta_graph=True)
 
   acc = test_accuracy(session)
-  print('Test accuracy: %.1f%%' % acc)
+  print('Test accuracy for Teacher: %.1f%%' % acc)
 
 
 
@@ -211,13 +211,14 @@ batch_size = 10
 patch_size = 3
 depth = 32
 num_hidden = 64
-num_epochs = 1
-alpha = 0.5
+num_epochs_teacher = 3
+alpha = 0.005
 T = 100
+alpha = 0.5
 
-graph_student_KD = tf.Graph()
+graph_teacher = tf.Graph()
 
-with graph_student_KD.as_default():
+with graph_teacher.as_default():
 
     '''Input data'''
     tf_train_dataset = tf.placeholder(tf.float32, shape=(batch_size, image_size, image_size, num_channels))
@@ -263,7 +264,9 @@ with graph_student_KD.as_default():
     layersm_weights_teacher = tf.Variable(tf.truncated_normal([num_hidden, num_labels], stddev=0.1))
     layersm_biases_teacher = tf.Variable(tf.constant(1.0, shape=[num_labels]))
 
-     '''Variables For Student'''
+    teacher_parameters = [layer1_weights_teacher, layer1_biases_teacher, layer2_weights_teacher, layer2_biases_teacher, layer3_weights_teacher, layer3_biases_teacher, layer4_weights_teacher, layer4_biases_teacher, layerfc_weights_teacher, layerfc_biases_teacher, layersm_weights_teacher, layersm_biases_teacher]
+
+    '''Variables For Student'''
     # Convolution 1 Layer
     # Input channels: num_channels = 1
     # Output channels: depth = 16
@@ -281,6 +284,8 @@ with graph_student_KD.as_default():
     # Readout layer: Softmax Layer
     layersm_weights_student = tf.Variable(tf.truncated_normal([num_hidden, num_labels], stddev=0.1))
     layersm_biases_student = tf.Variable(tf.constant(1.0, shape=[num_labels]))
+
+    student_parameters = [layer1_weights_student, layer1_biases_student, layerfc_weights_student, layerfc_biases_student, layersm_weights_student, layersm_biases_student]
 
     # data = tf_train_dataset
     '''Teacher Model'''
@@ -306,13 +311,27 @@ with graph_student_KD.as_default():
       conv_4 = tf.nn.conv2d(pool_2, layer3_weights_teacher, strides=[1, 1, 1, 1], padding='SAME')
       hidden_4 = tf.nn.relu(conv_3 + layer3_biases_teacher)
       pool_4 = tf.nn.max_pool(hidden_3, [1, 2, 2, 1], [1, 1, 1, 1], padding='SAME')
-
+     
       shape = pool_4.get_shape().as_list()
       reshape = tf.reshape(pool_4, [shape[0], shape[1] * shape[2] * shape[3]])
       hidden = tf.nn.relu(tf.matmul(reshape, layerfc_weights_teacher) + layerfc_biases_teacher)
         
         # Readout Layer: Softmax Layer
-      return tf.nn.softmax(tf.matmul((hidden, layersm_weights_teacher) + layersm_biases_teacher) / T)
+      return tf.matmul(hidden, layersm_weights_teacher) + layersm_biases_teacher
+    # logits = tf.matmul(hidden, layersm_weights_teacher) + layersm_biases_teacher
+    '''Training computation'''
+    
+
+    logits_teacher = teacher_model(tf_train_dataset)
+    # loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=logits, labels=tf_train_labels))
+    loss_teacher = tf.reduce_mean(
+    tf.nn.softmax_cross_entropy_with_logits(labels=tf_train_labels, logits=logits_teacher)) 
+    '''Optimizer'''
+    # Learning rate of 0.05
+    optimizer_teacher = tf.train.GradientDescentOptimizer(0.001).minimize(loss, var_list=teacher_parameters)
+
+    '''Predictions for the training, validation, and test data'''
+    prediction_teacher_train = tf.nn.softmax(logits_teacher)
 
 
     def student_model(data,train=True):
@@ -327,37 +346,23 @@ with graph_student_KD.as_default():
         
         # Readout Layer: Softmax Layer
       return tf.matmul(hidden, layersm_weights_student) + layersm_biases_student
-     
 
-      # print ("Pool3")
-      # print (pool_3.get_shape())
-      
-      # Full Connected Layer
-      # print (pool_3.get_shape())
-      shape = pool_4.get_shape().as_list()
-      reshape = tf.reshape(pool_4, [shape[0], shape[1] * shape[2] * shape[3]])
-      hidden = tf.nn.relu(tf.matmul(reshape, layerfc_weights_teacher) + layerfc_biases_teacher)
-        
-        # Readout Layer: Softmax Layer
-      return tf.matmul(hidden, layersm_weights_teacher) + layersm_biases_teacher
-    # logits = tf.matmul(hidden, layersm_weights_teacher) + layersm_biases_teacher
-    '''Training computation'''   
-    softmax_logits_teacher = teacher_model(tf_train_dataset)
     logits_student = student_model(tf_train_dataset)
+    logits_teacher = teacher_model(tf_train_dataset)
+
+    prediction_student_soft = tf.nn.softmax(logits_student / T)
+    prediction_teacher_soft = tf.nn.softmax(logits_teacher / T)
     # loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=logits, labels=tf_train_labels))
     loss = tf.reduce_mean(
     tf.nn.softmax_cross_entropy_with_logits(labels=tf_train_labels, logits=logits_student)) \
-    + alpha*(tf.reduce_mean(
-      tf.nn.softmax_cross_entropy_with_logits(labels=softmax_logits_teacher, logits=(logits_student / T)))) 
-     # + alpha * (tf.nn.l2_loss(layer1_weights_teacher) + tf.nn.l2_loss(layer2_weights_teacher) + tf.nn.l2_loss(layer3_weights_teacher) \
-     # + tf.nn.l2_loss(layerfc_weights_teacher) + tf.nn.l2_loss(layersm_weights_teacher))
+    + alpha*(tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=prediction_teacher_soft, logits=logits_student / T)))
 
     '''Optimizer'''
     # Learning rate of 0.05
-    optimizer = tf.train.GradientDescentOptimizer(0.001).minimize(loss, var_list=[layer1_weights_student, layer1_biases_student, layerfc_weights_student, layerfc_biases_student, layersm_weights_student, layersm_biases_student])
+    optimizer_student = tf.train.GradientDescentOptimizer(0.001).minimize(loss, var_list=student_parameters)
 
     '''Predictions for the training, validation, and test data'''
-    prediction = tf.nn.softmax(logits)
+    prediction_student = tf.nn.softmax(logits_student)
 
 
 
@@ -369,7 +374,8 @@ with tf.device(current_device):
       saver = tf.train.Saver()
       saver.restore(session, temp_dir + model_name_save_teacher)
 
-    Train_Student(session)  
+    Train_Teacher(session)
+
 
   
     
