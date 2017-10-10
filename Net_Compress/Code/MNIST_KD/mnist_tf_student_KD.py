@@ -189,8 +189,9 @@ def Train_Teacher(session):
         batch_data = []
         batch_labels = []
 
-        feed_dict = {tf_train_dataset : new_batch_data, tf_train_labels : new_batch_labels, tf_flag = True}
-        _, l, predictions = session.run([optimizer_teacher, loss_teacher, prediction_teacher_train], feed_dict=feed_dict)
+        feed_dict = {tf_train_dataset : new_batch_data, tf_train_labels : new_batch_labels, tf_flag : True}
+        # _, l, predictions = session.run([optimizer_teacher, loss_teacher, prediction_teacher_train], feed_dict=feed_dict)
+        l, predictions = session.run([loss, pred], feed_dict=feed_dict)
 
         if minibatch_num % 100 == 0:
           print('Minibatch loss at step %d: %f' % (minibatch_num, l))          
@@ -244,7 +245,8 @@ def Train_Student(session):
         batch_labels = []
 
         feed_dict = {tf_train_dataset : new_batch_data, tf_train_labels : new_batch_labels, tf_flag : False}
-        _, l, predictions = session.run([optimizer_student, loss_student, prediction_student], feed_dict=feed_dict)
+        # _, l, predictions = session.run([optimizer_student, loss_student, prediction_student], feed_dict=feed_dict)
+        l, predictions = session.run([loss, pred], feed_dict=feed_dict)
 
         if minibatch_num % 100 == 0:
           print('Minibatch loss at step %d: %f' % (minibatch_num, l))          
@@ -280,7 +282,8 @@ with graph_student_KD.as_default():
     tf_train_dataset = tf.placeholder(tf.float32, shape=(batch_size, image_size, image_size, num_channels))
     tf_train_labels = tf.placeholder(tf.float32, shape=(batch_size, num_labels))
 
-    tf_flag = tf.placeholder(tf.bool, shape=())
+    tf_flag = tf.placeholder(tf.bool, shape=[])
+    tf_flag_value = tf.constant([1])
     # tf_valid_dataset = tf.constant(valid_dataset)
     # tf_test_dataset = tf.constant(test_dataset)
     # tf_test_dataset = tf.placeholder(tf.float32, shape=(batch_size, image_size, image_size, num_channels))
@@ -378,12 +381,9 @@ with graph_student_KD.as_default():
       return tf.matmul(hidden, layersm_weights_teacher) + layersm_biases_teacher
     # logits = tf.matmul(hidden, layersm_weights_teacher) + layersm_biases_teacher
     '''Training computation'''
-    
-
-    logits_teacher = teacher_model(tf_train_dataset)
-
-    if tf_flag:
-      # loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=logits, labels=tf_train_labels))
+    def train_teacher():
+      print ("Teacher")
+      logits_teacher = teacher_model(tf_train_dataset)
       loss_teacher = tf.reduce_mean(
       tf.nn.softmax_cross_entropy_with_logits(labels=tf_train_labels, logits=logits_teacher)) 
       '''Optimizer'''
@@ -392,6 +392,11 @@ with graph_student_KD.as_default():
 
       '''Predictions for the training, validation, and test data'''
       prediction_teacher_train = tf.nn.softmax(logits_teacher)
+
+      return loss_teacher, prediction_teacher_train
+
+    # if tf_flag is tf_flag_value :
+      # loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=logits, labels=tf_train_labels))      
 
 
     def student_model(data,train=True):
@@ -407,22 +412,30 @@ with graph_student_KD.as_default():
         # Readout Layer: Softmax Layer
       return tf.matmul(hidden, layersm_weights_student) + layersm_biases_student
 
-    logits_student = student_model(tf_train_dataset)
-    
 
-    # prediction_student_soft = tf.nn.softmax(logits_student / T)
-    prediction_teacher_soft = tf.nn.softmax(logits_teacher / T)
-    # loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=logits, labels=tf_train_labels))
-    loss_student = tf.reduce_mean(
-    tf.nn.softmax_cross_entropy_with_logits(labels=tf_train_labels, logits=logits_student)) \
-    + alpha*(tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=prediction_teacher_soft, logits=logits_student / T)))
+    def train_student():
+      print ("Student")
+      logits_teacher = teacher_model(tf_train_dataset)
+      logits_student = student_model(tf_train_dataset)    
 
-    '''Optimizer'''
-    # Learning rate of 0.05
-    optimizer_student = tf.train.GradientDescentOptimizer(0.001).minimize(loss_student, var_list=student_parameters)
+      # prediction_student_soft = tf.nn.softmax(logits_student / T)
+      prediction_teacher_soft = tf.nn.softmax(logits_teacher / T)
+      # loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=logits, labels=tf_train_labels))
+      loss_student = tf.reduce_mean(
+      tf.nn.softmax_cross_entropy_with_logits(labels=tf_train_labels, logits=logits_student)) \
+      + alpha*(tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=prediction_teacher_soft, logits=logits_student / T)))
 
-    '''Predictions for the training, validation, and test data'''
-    prediction_student = tf.nn.softmax(logits_student)
+      '''Optimizer'''
+      # Learning rate of 0.05
+      optimizer_student = tf.train.GradientDescentOptimizer(0.001).minimize(loss_student, var_list=student_parameters)
+
+      '''Predictions for the training, validation, and test data'''
+      prediction_student = tf.nn.softmax(logits_student)
+
+      return loss_student, prediction_student
+
+    loss, pred = tf.cond(tf_flag, train_teacher, train_student)
+    # loss, pred = fn(tf_train_dataset, tf_train_labels)
 
 
 
