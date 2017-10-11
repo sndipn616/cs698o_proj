@@ -228,24 +228,24 @@ with graph_student.as_default():
     # tf_test_dataset = tf.placeholder(tf.float32, shape=(batch_size, image_size, image_size, num_channels))
     # tf_test_labels = tf.placeholder(tf.float32, shape=(batch_size, num_labels))
 
-    '''Variables For Teacher'''
+    '''Variables For Student'''
     # Convolution 1 Layer
     # Input channels: num_channels = 1
     # Output channels: depth = 16
-    layer1_weights_student = tf.Variable(tf.truncated_normal([patch_size, patch_size, num_channels, depth], stddev=0.1))
-    layer1_biases_student = tf.Variable(tf.zeros([depth]))
+    layer1_weights_student = tf.Variable(tf.truncated_normal([patch_size, patch_size, num_channels, depth], stddev=0.1), name='l1ws')
+    layer1_biases_student = tf.Variable(tf.zeros([depth]), name='l1bs')
     
     
     # Fully Connected Layer (Densely Connected Layer)
     # Use neurons to allow processing of entire image
     # final_image_size = output_size_no_pool(image_size, patch_size, padding='same', conv_stride=2)
     final_image_size = 28
-    layerfc_weights_student = tf.Variable(tf.truncated_normal([final_image_size * final_image_size * depth, num_hidden], stddev=0.1))    
-    layerfc_biases_student = tf.Variable(tf.constant(1.0, shape=[num_hidden]))
+    layerfc_weights_student = tf.Variable(tf.truncated_normal([final_image_size * final_image_size * depth, num_hidden], stddev=0.1), name='lfcws')    
+    layerfc_biases_student = tf.Variable(tf.constant(1.0, shape=[num_hidden]), name='lfcbs')
     
     # Readout layer: Softmax Layer
-    layersm_weights_student = tf.Variable(tf.truncated_normal([num_hidden, num_labels], stddev=0.1))
-    layersm_biases_student = tf.Variable(tf.constant(1.0, shape=[num_labels]))
+    layersm_weights_student = tf.Variable(tf.truncated_normal([num_hidden, num_labels], stddev=0.1), name='lsmws')
+    layersm_biases_student = tf.Variable(tf.constant(1.0, shape=[num_labels]), name='lsmbs')
 
     # data = tf_train_dataset
     '''Student Model'''
@@ -284,9 +284,9 @@ with tf.device(current_device):
   with tf.Session(graph=graph_student) as session:
     tf.global_variables_initializer().run()
     print('Initialized')
-    if os.path.isfile(temp_dir + model_name_save_student + '.meta'):
-      saver = tf.train.Saver()
-      saver.restore(session, temp_dir + model_name_save_student)
+    # if os.path.isfile(temp_dir + model_name_save_student + '.meta'):
+    #   saver = tf.train.Saver()
+    #   saver.restore(session, temp_dir + model_name_save_student)
 
     Train_Student(session)
     

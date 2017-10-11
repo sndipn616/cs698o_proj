@@ -230,37 +230,37 @@ with graph_teacher.as_default():
     # Convolution 1 Layer
     # Input channels: num_channels = 1
     # Output channels: depth = 16
-    layer1_weights_teacher = tf.Variable(tf.truncated_normal([patch_size, patch_size, num_channels, depth], stddev=0.1))
-    layer1_biases_teacher = tf.Variable(tf.zeros([depth]))
+    layer1_weights_teacher = tf.Variable(tf.truncated_normal([patch_size, patch_size, num_channels, depth], stddev=0.1), name='l1wt')
+    layer1_biases_teacher = tf.Variable(tf.zeros([depth]), name='l1bt')
     
     # Convolution 2 Layer
     # Input channels: depth = 16
     # Output channels: depth = 16
-    layer2_weights_teacher = tf.Variable(tf.truncated_normal([patch_size, patch_size, depth, depth], stddev=0.1))
-    layer2_biases_teacher = tf.Variable(tf.constant(1.0, shape=[depth]))
+    layer2_weights_teacher = tf.Variable(tf.truncated_normal([patch_size, patch_size, depth, depth], stddev=0.1), name='l2wt')
+    layer2_biases_teacher = tf.Variable(tf.constant(1.0, shape=[depth]), name='l2bt')
 
     # Convolution 3 Layer
     # Input channels: depth = 16
     # Output channels: depth = 16
-    layer3_weights_teacher = tf.Variable(tf.truncated_normal([patch_size, patch_size, depth, depth], stddev=0.1))
-    layer3_biases_teacher = tf.Variable(tf.constant(1.0, shape=[depth]))
+    layer3_weights_teacher = tf.Variable(tf.truncated_normal([patch_size, patch_size, depth, depth], stddev=0.1), name='l3wt')
+    layer3_biases_teacher = tf.Variable(tf.constant(1.0, shape=[depth]), name='l3bt')
 
     # Convolution 4 Layer
     # Input channels: depth = 16
     # Output channels: depth = 16
-    layer4_weights_teacher = tf.Variable(tf.truncated_normal([patch_size, patch_size, depth, depth], stddev=0.1))
-    layer4_biases_teacher = tf.Variable(tf.constant(1.0, shape=[depth]))
+    layer4_weights_teacher = tf.Variable(tf.truncated_normal([patch_size, patch_size, depth, depth], stddev=0.1), name='l4wt')
+    layer4_biases_teacher = tf.Variable(tf.constant(1.0, shape=[depth]), name='l4bt')
     
     # Fully Connected Layer (Densely Connected Layer)
     # Use neurons to allow processing of entire image
     # final_image_size = output_size_no_pool(image_size, patch_size, padding='same', conv_stride=2)
     final_image_size = 28
-    layerfc_weights_teacher = tf.Variable(tf.truncated_normal([final_image_size * final_image_size * depth, num_hidden], stddev=0.1))    
-    layerfc_biases_teacher = tf.Variable(tf.constant(1.0, shape=[num_hidden]))
+    layerfc_weights_teacher = tf.Variable(tf.truncated_normal([final_image_size * final_image_size * depth, num_hidden], stddev=0.1), name='lfcwt')    
+    layerfc_biases_teacher = tf.Variable(tf.constant(1.0, shape=[num_hidden]), name='lfcbt')
     
     # Readout layer: Softmax Layer
-    layersm_weights_teacher = tf.Variable(tf.truncated_normal([num_hidden, num_labels], stddev=0.1))
-    layersm_biases_teacher = tf.Variable(tf.constant(1.0, shape=[num_labels]))
+    layersm_weights_teacher = tf.Variable(tf.truncated_normal([num_hidden, num_labels], stddev=0.1), name='lsmwt')
+    layersm_biases_teacher = tf.Variable(tf.constant(1.0, shape=[num_labels]), name='lsmbt')
 
     # data = tf_train_dataset
     '''Teacher Model'''
@@ -321,9 +321,9 @@ with tf.device(current_device):
   with tf.Session(graph=graph_teacher) as session:
     tf.global_variables_initializer().run()
     print('Initialized')
-    if os.path.isfile(temp_dir + model_name_save_teacher + '.meta'):
-      saver = tf.train.Saver()
-      saver.restore(session, temp_dir + model_name_save_teacher)
+    # if os.path.isfile(temp_dir + model_name_save_teacher + '.meta'):
+    #   saver = tf.train.Saver()
+    #   saver.restore(session, temp_dir + model_name_save_teacher)
 
     Train_Teacher(session)  
 
