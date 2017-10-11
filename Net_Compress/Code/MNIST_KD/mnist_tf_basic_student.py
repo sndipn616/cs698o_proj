@@ -213,7 +213,7 @@ batch_size = 10
 patch_size = 3
 depth = 32
 num_hidden = 64
-num_epochs = 1
+num_epochs = 3
 alpha = 0.005
 
 graph_student = tf.Graph()
@@ -272,7 +272,7 @@ with graph_student.as_default():
 
     '''Optimizer'''
     # Learning rate of 0.05
-    optimizer = tf.train.GradientDescentOptimizer(0.001).minimize(loss)
+    optimizer = tf.train.GradientDescentOptimizer(0.0005).minimize(loss)
 
     '''Predictions for the training, validation, and test data'''
     prediction = tf.nn.softmax(logits)
@@ -284,9 +284,9 @@ with tf.device(current_device):
   with tf.Session(graph=graph_student) as session:
     tf.global_variables_initializer().run()
     print('Initialized')
-    # if os.path.isfile(temp_dir + model_name_save_student + '.meta'):
-    #   saver = tf.train.Saver()
-    #   saver.restore(session, temp_dir + model_name_save_student)
+    if os.path.isfile(export_dir + model_name_save_student + '.meta'):
+      saver = tf.train.Saver()
+      saver.restore(session, export_dir + model_name_save_student)
 
     Train_Student(session)
     
