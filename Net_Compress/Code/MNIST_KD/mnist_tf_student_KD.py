@@ -388,11 +388,12 @@ with graph_student_KD.as_default():
       tf.nn.softmax_cross_entropy_with_logits(labels=tf_train_labels, logits=logits_teacher)) 
       '''Optimizer'''
       # Learning rate of 0.05
-      optimizer_teacher = tf.train.GradientDescentOptimizer(0.001).minimize(loss_teacher, var_list=teacher_parameters)
+      optimizer_teacher = tf.train.GradientDescentOptimizer(0.005).minimize(loss_teacher, var_list=teacher_parameters)
 
       '''Predictions for the training, validation, and test data'''
       prediction_teacher_train = tf.nn.softmax(logits_teacher)
-
+      # loss = loss_teacher
+      # pred = prediction_teacher_train
       return loss_teacher, prediction_teacher_train
 
     # if tf_flag is tf_flag_value :
@@ -436,6 +437,7 @@ with graph_student_KD.as_default():
 
     loss, pred = tf.cond(tf_flag, train_teacher, train_student)
     # loss, pred = fn(tf_train_dataset, tf_train_labels)
+    # loss, pred = train_teacher()
 
 
 
@@ -450,8 +452,8 @@ with tf.device(current_device):
     print ("Training Teacher")
     Train_Teacher(session)
 
-    print ("Training Student")
-    Train_Student(session)
+    # print ("Training Student")
+    # Train_Student(session)
 
 
   
