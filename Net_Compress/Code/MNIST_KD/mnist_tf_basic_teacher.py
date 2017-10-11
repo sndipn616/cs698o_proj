@@ -302,6 +302,7 @@ with graph_teacher.as_default():
     # logits = tf.matmul(hidden, layersm_weights_teacher) + layersm_biases_teacher
     '''Training computation'''   
     logits = teacher_model(tf_train_dataset)
+    tf.add_to_collection("teacher_model_logits", logits)
     # loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=logits, labels=tf_train_labels))
     loss = tf.reduce_mean(
     tf.nn.softmax_cross_entropy_with_logits(labels=tf_train_labels, logits=logits)) #\
