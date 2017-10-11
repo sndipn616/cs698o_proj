@@ -114,6 +114,9 @@ def test_accuracy(session,teacher=True):
   batch_labels = []
   count_in_batch = 0
   minibatch_num = 0
+
+  
+
   for i in range(NumLabels2):      
     CurrImage = np.zeros((NumRows2,NumColumns2), dtype=np.float32)
     for row in range(NumRows2):
@@ -283,7 +286,7 @@ with graph_student_KD.as_default():
     '''Input data'''
     tf_train_dataset = tf.placeholder(tf.float32, shape=(batch_size, image_size, image_size, num_channels))
     tf_train_labels = tf.placeholder(tf.float32, shape=(batch_size, num_labels))
-
+        
     
     '''Variables For Student'''
     # Convolution 1 Layer
@@ -348,13 +351,15 @@ with graph_student_KD.as_default():
 
 
 with tf.device(current_device):  
-  # with tf.Session() as session:
-  #   tf.global_variables_initializer().run()
-  #   print('Initialized')
-  #   if os.path.isfile(export_dir_teacher + model_name_save_teacher + '.meta'):
-  #     saver = tf.train.import_meta_graph(export_dir_teacher + model_name_save_teacher + '.meta', clear_devices=True)
-  #     saver.restore(session, export_dir_teacher + model_name_save_teacher)
-
+  with tf.Session(graph=graph_student_KD) as session:
+    tf.global_variables_initializer().run()
+    print('Initialized')
+    if os.path.isfile(export_dir_teacher + model_name_save_teacher + '.meta'):
+      saver = tf.train.import_meta_graph(export_dir_teacher + model_name_save_teacher + '.meta', clear_devices=True)
+      saver.restore(session, export_dir_teacher + model_name_save_teacher)
+      prediction_teacher = tf.get_collection('teacher_model_prediction')[0]
+      acc = test_accuracy(session)
+      print('Test accuracy for Teacher: %.1f%%' % acc)
   #     logit_teacher = 
 
   #   print ("Checking Teacher's Test Accuracy")
@@ -364,12 +369,12 @@ with tf.device(current_device):
     # print ("Training Student with Knowledge Distillation")
     # Train_Student(session)
 
-  sess = tf.Session()   
-  # Import graph from the path and recover session    
-  saver = tf.train.import_meta_graph(export_dir_teacher + model_name_save_teacher + '.meta', clear_devices=True)    
-  saver.restore(sess, export_dir_teacher + model_name_save_teacher)    
-  # Get activation function from the saved collection   
-  logit_teacher = tf.get_collection("teacher_model_logits")
+  # sess = tf.Session()   
+  # # Import graph from the path and recover session    
+  # saver = tf.train.import_meta_graph(export_dir_teacher + model_name_save_teacher + '.meta', clear_devices=True)    
+  # saver.restore(sess, export_dir_teacher + model_name_save_teacher)    
+  # # Get activation function from the saved collection   
+  # logit_teacher = tf.get_collection("teacher_model_logits")
 
     
 
