@@ -44,21 +44,7 @@ def return_pointers():
 
   return images, labels, NumLabels, NumRows, NumColumns
 
-testImages = gzip.open(data_dir + "t10k-images-idx3-ubyte.gz", 'rb')
-testLabels = gzip.open(data_dir + "t10k-labels-idx1-ubyte.gz", 'rb')
 
-testImages.read(4)
-NumImages2 = testImages.read(4)
-NumImages2 = unpack('>I', NumImages2)[0]
-
-NumRows2 = testImages.read(4)
-NumRows2 = unpack('>I', NumRows2)[0]
-NumColumns2 = testImages.read(4)
-NumColumns2 = unpack('>I', NumColumns2)[0]
-
-testLabels.read(4)  
-NumLabels2 = testLabels.read(4)
-NumLabels2 = unpack('>I', NumLabels2)[0]
 
 # Reformat into a TensorFlow-friendly shape:
 # - convolutions need the image data formatted as a cube (width by height by #channels)
@@ -107,6 +93,23 @@ def output_size_no_pool(input_size, filter_size, padding, conv_stride):
     return int(np.ceil(output_2))
 
 def test_accuracy(session,teacher=True):
+
+  testImages = gzip.open(data_dir + "t10k-images-idx3-ubyte.gz", 'rb')
+  testLabels = gzip.open(data_dir + "t10k-labels-idx1-ubyte.gz", 'rb')
+
+  testImages.read(4)
+  NumImages2 = testImages.read(4)
+  NumImages2 = unpack('>I', NumImages2)[0]
+
+  NumRows2 = testImages.read(4)
+  NumRows2 = unpack('>I', NumRows2)[0]
+  NumColumns2 = testImages.read(4)
+  NumColumns2 = unpack('>I', NumColumns2)[0]
+
+  testLabels.read(4)  
+  NumLabels2 = testLabels.read(4)
+  NumLabels2 = unpack('>I', NumLabels2)[0]
+
   correct = 0
   total = 0
 
@@ -147,13 +150,21 @@ def test_accuracy(session,teacher=True):
       batch_data = []
       batch_labels = []
 
+      # feed_dict = {tf_train_dataset : new_batch_data, tf_train_labels : new_batch_labels, 'x:0' : new_batch_data, 'y:0' : new_batch_labels}
+
       if teacher:
         feed_dict = {'x:0' : new_batch_data, 'y:0' : new_batch_labels}
         [predictions] = session.run([prediction_teacher], feed_dict=feed_dict)
+      else:
+        feed_dict = {tf_train_dataset : new_batch_data, tf_train_labels : new_batch_labels}
+        [predictions] = session.run([prediction_student], feed_dict=feed_dict) 
 
       c, t = num_correct_total(predictions, new_batch_labels)
       correct += c
       total += t
+
+  testImages.close()
+  testLabels.close()
 
   return 100.0 * correct / total
 
@@ -249,9 +260,9 @@ def Train_Student(session):
         batch_data = []
         batch_labels = []
 
-        feed_dict = {tf_train_dataset : new_batch_data, tf_train_labels : new_batch_labels}
+        feed_dict = {tf_train_dataset : new_batch_data, tf_train_labels : new_batch_labels, 'x:0' : new_batch_data, 'y:0' : new_batch_labels}
         # _, l, predictions = session.run([optimizer_student, loss_student, prediction_student], feed_dict=feed_dict)
-        l, predictions = session.run([loss, pred], feed_dict=feed_dict)
+        l, predictions, _, _ = session.run([loss_student, prediction_student, logits_teacher, prediction_teacher], feed_dict=feed_dict)
 
         if minibatch_num % 100 == 0:
           print('Minibatch loss at step %d: %f' % (minibatch_num, l))          
@@ -264,7 +275,7 @@ def Train_Student(session):
   model_saver = tf.train.Saver()
   model_saver.save(session, export_dir + model_name_save_student, write_meta_graph=True)
 
-  acc = test_accuracy(session)
+  acc = test_accuracy(session, teacher=False)
   print('Test accuracy for Student: %.1f%%' % acc)
 
 
@@ -276,8 +287,9 @@ num_hidden = 64
 num_epochs_teacher = 3
 num_epochs_student = 3
 alpha = 0.005
-T = 100
-alpha = 0.5
+T = 10
+
+alpha = 0
 
 graph_student_KD = tf.Graph()
 
@@ -358,24 +370,72 @@ with tf.device(current_device):
       saver = tf.train.import_meta_graph(export_dir_teacher + model_name_save_teacher + '.meta', clear_devices=True)
       saver.restore(session, export_dir_teacher + model_name_save_teacher)
       prediction_teacher = tf.get_collection('teacher_model_prediction')[0]
+      logits_teacher = tf.get_collection('teacher_model_logits')[0]
+
+      
+      
+      '''Input data'''
+      tf_train_dataset = tf.placeholder(tf.float32, shape=(batch_size, image_size, image_size, num_channels))
+      tf_train_labels = tf.placeholder(tf.float32, shape=(batch_size, num_labels))
+          
+      
+      '''Variables For Student'''
+      # Convolution 1 Layer
+      # Input channels: num_channels = 1
+      # Output channels: depth = 16
+      layer1_weights_student = tf.Variable(tf.truncated_normal([patch_size, patch_size, num_channels, depth], stddev=0.1), name='l1ws')
+      layer1_biases_student = tf.Variable(tf.zeros([depth]), name='l1bs')
+      
+      
+      # Fully Connected Layer (Densely Connected Layer)
+      # Use neurons to allow processing of entire image
+      # final_image_size = output_size_no_pool(image_size, patch_size, padding='same', conv_stride=2)
+      final_image_size = 28
+      layerfc_weights_student = tf.Variable(tf.truncated_normal([final_image_size * final_image_size * depth, num_hidden], stddev=0.1), name='lfcws')    
+      layerfc_biases_student = tf.Variable(tf.constant(1.0, shape=[num_hidden]), name='lfcbs')
+      
+      # Readout layer: Softmax Layer
+      layersm_weights_student = tf.Variable(tf.truncated_normal([num_hidden, num_labels], stddev=0.1), name='lsmws')
+      layersm_biases_student = tf.Variable(tf.constant(1.0, shape=[num_labels]), name='lsmbs')
+
+      student_parameters = [layer1_weights_student, layer1_biases_student, layerfc_weights_student, layerfc_biases_student, layersm_weights_student, layersm_biases_student]
+
+     
+      def student_model(data,train=True):
+        # First Convolutional Layer with Pooling
+        conv_1 = tf.nn.conv2d(data, layer1_weights_student, strides=[1, 1, 1, 1], padding='SAME')
+        hidden_1 = tf.nn.relu(conv_1 + layer1_biases_student)
+        pool_1 = tf.nn.max_pool(hidden_1, [1, 2, 2, 1], [1, 1, 1, 1], padding='SAME')
+        
+        shape = pool_1.get_shape().as_list()
+        reshape = tf.reshape(pool_1, [shape[0], shape[1] * shape[2] * shape[3]])
+        hidden = tf.nn.relu(tf.matmul(reshape, layerfc_weights_student) + layerfc_biases_student)
+          
+          # Readout Layer: Softmax Layer
+        return tf.matmul(hidden, layersm_weights_student) + layersm_biases_student
+
+
+      # logits_teacher = tf.get_collection('teacher_model_logits')[0]
+      logits_student = student_model(tf_train_dataset)
+      prediction_teacher_soft = tf.nn.softmax(logits_teacher / T)
+
+      loss_student = tf.reduce_mean(\
+        tf.nn.softmax_cross_entropy_with_logits(labels=tf_train_labels, logits=logits_student)) \
+        + alpha*(tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=prediction_teacher_soft, logits=logits_student / T)))
+
+      optimizer_student = tf.train.GradientDescentOptimizer(0.001).minimize(loss_student, var_list=student_parameters)
+      prediction_student = tf.nn.softmax(logits_student)
+
+      # tf.global_variables_initializer().run()
+      # init_new_vars_op = tf.initialize_variables(student_parameters)
+      # session.run(init_new_vars_op)
+      tf.variables_initializer(student_parameters).run()
+      print ("Checking Test Accuracy for Teacher")
       acc = test_accuracy(session)
       print('Test accuracy for Teacher: %.1f%%' % acc)
-  #     logit_teacher = 
 
-  #   print ("Checking Teacher's Test Accuracy")
-  #   acc = test_accuracy(session)
-  #   print('Test accuracy for Teacher: %.1f%%' % acc)
-
-    # print ("Training Student with Knowledge Distillation")
-    # Train_Student(session)
-
-  # sess = tf.Session()   
-  # # Import graph from the path and recover session    
-  # saver = tf.train.import_meta_graph(export_dir_teacher + model_name_save_teacher + '.meta', clear_devices=True)    
-  # saver.restore(sess, export_dir_teacher + model_name_save_teacher)    
-  # # Get activation function from the saved collection   
-  # logit_teacher = tf.get_collection("teacher_model_logits")
-
+      print ("Training Student with Knowledge Distillation")
+      Train_Student(session)
     
 
 
