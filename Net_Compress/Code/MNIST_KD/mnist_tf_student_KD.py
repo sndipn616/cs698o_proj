@@ -13,6 +13,7 @@ from tensorflow.examples.tutorials.mnist import input_data
 
 # mnist = input_data.read_data_sets("MNIST_data/", validation_size=10000, one_hot=True)
 current_device = '/cpu:0'
+export_dir_teacher = 'MNIST_Model_Teacher/'
 export_dir = 'MNIST_Model_Student_KD/'
 temp_dir = 'MNIST_Models/'
 # model_saver = tf.saved_model.builder.SavedModelBuilder(export_dir)
@@ -105,7 +106,7 @@ def output_size_no_pool(input_size, filter_size, padding, conv_stride):
     output_2 = float(((output_1 - filter_size - 2*padding) / conv_stride) + 1.00)
     return int(np.ceil(output_2))
 
-def test_accuracy(session):
+def test_accuracy(session,teacher=True):
   correct = 0
   total = 0
 
@@ -143,8 +144,9 @@ def test_accuracy(session):
       batch_data = []
       batch_labels = []
 
-      feed_dict = {tf_train_dataset : new_batch_data, tf_train_labels : new_batch_labels}
-      [predictions] = session.run([prediction], feed_dict=feed_dict)
+      if teacher:
+        feed_dict = {'x:0' : new_batch_data, 'y:0' : new_batch_labels}
+        [predictions] = session.run([prediction_teacher], feed_dict=feed_dict)
 
       c, t = num_correct_total(predictions, new_batch_labels)
       correct += c
@@ -189,7 +191,7 @@ def Train_Teacher(session):
         batch_data = []
         batch_labels = []
 
-        feed_dict = {tf_train_dataset : new_batch_data, tf_train_labels : new_batch_labels, tf_flag : True}
+        feed_dict = {tf_train_dataset : new_batch_data, tf_train_labels : new_batch_labels}
         # _, l, predictions = session.run([optimizer_teacher, loss_teacher, prediction_teacher_train], feed_dict=feed_dict)
         l, predictions = session.run([loss, pred], feed_dict=feed_dict)
 
@@ -244,7 +246,7 @@ def Train_Student(session):
         batch_data = []
         batch_labels = []
 
-        feed_dict = {tf_train_dataset : new_batch_data, tf_train_labels : new_batch_labels, tf_flag : False}
+        feed_dict = {tf_train_dataset : new_batch_data, tf_train_labels : new_batch_labels}
         # _, l, predictions = session.run([optimizer_student, loss_student, prediction_student], feed_dict=feed_dict)
         l, predictions = session.run([loss, pred], feed_dict=feed_dict)
 
@@ -282,51 +284,7 @@ with graph_student_KD.as_default():
     tf_train_dataset = tf.placeholder(tf.float32, shape=(batch_size, image_size, image_size, num_channels))
     tf_train_labels = tf.placeholder(tf.float32, shape=(batch_size, num_labels))
 
-    tf_flag = tf.placeholder(tf.bool, shape=[])
-    tf_flag_value = tf.constant([1])
-    # tf_valid_dataset = tf.constant(valid_dataset)
-    # tf_test_dataset = tf.constant(test_dataset)
-    # tf_test_dataset = tf.placeholder(tf.float32, shape=(batch_size, image_size, image_size, num_channels))
-    # tf_test_labels = tf.placeholder(tf.float32, shape=(batch_size, num_labels))
-
-    '''Variables For Teacher'''
-    # Convolution 1 Layer
-    # Input channels: num_channels = 1
-    # Output channels: depth = 16
-    layer1_weights_teacher = tf.Variable(tf.truncated_normal([patch_size, patch_size, num_channels, depth], stddev=0.1))
-    layer1_biases_teacher = tf.Variable(tf.zeros([depth]))
     
-    # Convolution 2 Layer
-    # Input channels: depth = 16
-    # Output channels: depth = 16
-    layer2_weights_teacher = tf.Variable(tf.truncated_normal([patch_size, patch_size, depth, depth], stddev=0.1))
-    layer2_biases_teacher = tf.Variable(tf.constant(1.0, shape=[depth]))
-
-    # Convolution 3 Layer
-    # Input channels: depth = 16
-    # Output channels: depth = 16
-    layer3_weights_teacher = tf.Variable(tf.truncated_normal([patch_size, patch_size, depth, depth], stddev=0.1))
-    layer3_biases_teacher = tf.Variable(tf.constant(1.0, shape=[depth]))
-
-    # Convolution 4 Layer
-    # Input channels: depth = 16
-    # Output channels: depth = 16
-    layer4_weights_teacher = tf.Variable(tf.truncated_normal([patch_size, patch_size, depth, depth], stddev=0.1))
-    layer4_biases_teacher = tf.Variable(tf.constant(1.0, shape=[depth]))
-    
-    # Fully Connected Layer (Densely Connected Layer)
-    # Use neurons to allow processing of entire image
-    # final_image_size = output_size_no_pool(image_size, patch_size, padding='same', conv_stride=2)
-    final_image_size = 28
-    layerfc_weights_teacher = tf.Variable(tf.truncated_normal([final_image_size * final_image_size * depth, num_hidden], stddev=0.1))    
-    layerfc_biases_teacher = tf.Variable(tf.constant(1.0, shape=[num_hidden]))
-    
-    # Readout layer: Softmax Layer
-    layersm_weights_teacher = tf.Variable(tf.truncated_normal([num_hidden, num_labels], stddev=0.1))
-    layersm_biases_teacher = tf.Variable(tf.constant(1.0, shape=[num_labels]))
-
-    teacher_parameters = [layer1_weights_teacher, layer1_biases_teacher, layer2_weights_teacher, layer2_biases_teacher, layer3_weights_teacher, layer3_biases_teacher, layer4_weights_teacher, layer4_biases_teacher, layerfc_weights_teacher, layerfc_biases_teacher, layersm_weights_teacher, layersm_biases_teacher]
-
     '''Variables For Student'''
     # Convolution 1 Layer
     # Input channels: num_channels = 1
@@ -348,58 +306,7 @@ with graph_student_KD.as_default():
 
     student_parameters = [layer1_weights_student, layer1_biases_student, layerfc_weights_student, layerfc_biases_student, layersm_weights_student, layersm_biases_student]
 
-    # data = tf_train_dataset
-    '''Teacher Model'''
-    def teacher_model(data,train=True):
-        # First Convolutional Layer with Pooling
-      conv_1 = tf.nn.conv2d(data, layer1_weights_teacher, strides=[1, 1, 1, 1], padding='SAME')
-      hidden_1 = tf.nn.relu(conv_1 + layer1_biases_teacher)
-      pool_1 = tf.nn.max_pool(hidden_1, [1, 2, 2, 1], [1, 1, 1, 1], padding='SAME')
-      
-      # Second Convolutional Layer with Pooling
-      conv_2 = tf.nn.conv2d(pool_1, layer2_weights_teacher, strides=[1, 1, 1, 1], padding='SAME')
-      hidden_2 = tf.nn.relu(conv_2 + layer2_biases_teacher)
-      pool_2 = tf.nn.max_pool(hidden_2, [1, 2, 2, 1], [1, 1, 1, 1], padding='SAME')
-
-      # print ("Pool2")
-      # print (pool_2.get_shape())
-      # Third Convolutional Layer with Pooling
-      conv_3 = tf.nn.conv2d(pool_2, layer3_weights_teacher, strides=[1, 1, 1, 1], padding='SAME')
-      hidden_3 = tf.nn.relu(conv_3 + layer3_biases_teacher)
-      pool_3 = tf.nn.max_pool(hidden_3, [1, 2, 2, 1], [1, 1, 1, 1], padding='SAME')
-
-      # Fourth Convolutional Layer with Pooling
-      conv_4 = tf.nn.conv2d(pool_2, layer3_weights_teacher, strides=[1, 1, 1, 1], padding='SAME')
-      hidden_4 = tf.nn.relu(conv_3 + layer3_biases_teacher)
-      pool_4 = tf.nn.max_pool(hidden_3, [1, 2, 2, 1], [1, 1, 1, 1], padding='SAME')
-     
-      shape = pool_4.get_shape().as_list()
-      reshape = tf.reshape(pool_4, [shape[0], shape[1] * shape[2] * shape[3]])
-      hidden = tf.nn.relu(tf.matmul(reshape, layerfc_weights_teacher) + layerfc_biases_teacher)
-        
-        # Readout Layer: Softmax Layer
-      return tf.matmul(hidden, layersm_weights_teacher) + layersm_biases_teacher
-    # logits = tf.matmul(hidden, layersm_weights_teacher) + layersm_biases_teacher
-    '''Training computation'''
-    def train_teacher():
-      print ("Teacher")
-      logits_teacher = teacher_model(tf_train_dataset)
-      loss_teacher = tf.reduce_mean(
-      tf.nn.softmax_cross_entropy_with_logits(labels=tf_train_labels, logits=logits_teacher)) 
-      '''Optimizer'''
-      # Learning rate of 0.05
-      optimizer_teacher = tf.train.GradientDescentOptimizer(0.005).minimize(loss_teacher, var_list=teacher_parameters)
-
-      '''Predictions for the training, validation, and test data'''
-      prediction_teacher_train = tf.nn.softmax(logits_teacher)
-      # loss = loss_teacher
-      # pred = prediction_teacher_train
-      return loss_teacher, prediction_teacher_train
-
-    # if tf_flag is tf_flag_value :
-      # loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=logits, labels=tf_train_labels))      
-
-
+   
     def student_model(data,train=True):
       # First Convolutional Layer with Pooling
       conv_1 = tf.nn.conv2d(data, layer1_weights_student, strides=[1, 1, 1, 1], padding='SAME')
@@ -414,46 +321,57 @@ with graph_student_KD.as_default():
       return tf.matmul(hidden, layersm_weights_student) + layersm_biases_student
 
 
-    def train_student():
-      print ("Student")
-      logits_teacher = teacher_model(tf_train_dataset)
-      logits_student = student_model(tf_train_dataset)    
+    # logits_teacher = tf.get_collection('teacher_model_logits')[0]
+    logits_student = student_model(tf_train_dataset)    
 
-      # prediction_student_soft = tf.nn.softmax(logits_student / T)
-      prediction_teacher_soft = tf.nn.softmax(logits_teacher / T)
-      # loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=logits, labels=tf_train_labels))
-      loss_student = tf.reduce_mean(
-      tf.nn.softmax_cross_entropy_with_logits(labels=tf_train_labels, logits=logits_student)) \
-      + alpha*(tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=prediction_teacher_soft, logits=logits_student / T)))
+    # prediction_student_soft = tf.nn.softmax(logits_student / T)
+    # prediction_teacher = tf.nn.softmax(logits_teacher)
+    # prediction_teacher_soft = tf.nn.softmax(logits_teacher / T)
+    # loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=logits, labels=tf_train_labels))
+    # loss_student = tf.reduce_mean(
+    # tf.nn.softmax_cross_entropy_with_logits(labels=tf_train_labels, logits=logits_student)) \
+    # + alpha*(tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=prediction_teacher_soft, logits=logits_student / T)))
 
-      '''Optimizer'''
-      # Learning rate of 0.05
-      optimizer_student = tf.train.GradientDescentOptimizer(0.001).minimize(loss_student, var_list=student_parameters)
+    # '''Optimizer'''
+    # # Learning rate of 0.05
+    # optimizer_student = tf.train.GradientDescentOptimizer(0.001).minimize(loss_student, var_list=student_parameters)
 
-      '''Predictions for the training, validation, and test data'''
-      prediction_student = tf.nn.softmax(logits_student)
+    # '''Predictions for the training, validation, and test data'''
+    # prediction_student = tf.nn.softmax(logits_student)
 
-      return loss_student, prediction_student
+      
 
-    loss, pred = tf.cond(tf_flag, train_teacher, train_student)
+    # loss, pred = tf.cond(tf_flag, train_teacher, train_student)
     # loss, pred = fn(tf_train_dataset, tf_train_labels)
     # loss, pred = train_teacher()
 
 
 
 with tf.device(current_device):  
-  with tf.Session(graph=graph_student_KD) as session:
-    tf.global_variables_initializer().run()
-    print('Initialized')
-    if os.path.isfile(export_dir + model_name_save_teacher + '.meta'):
-      saver = tf.train.Saver()
-      saver.restore(session, export_dir + model_name_save_teacher)
+  # with tf.Session() as session:
+  #   tf.global_variables_initializer().run()
+  #   print('Initialized')
+  #   if os.path.isfile(export_dir_teacher + model_name_save_teacher + '.meta'):
+  #     saver = tf.train.import_meta_graph(export_dir_teacher + model_name_save_teacher + '.meta', clear_devices=True)
+  #     saver.restore(session, export_dir_teacher + model_name_save_teacher)
 
-    print ("Training Teacher")
-    Train_Teacher(session)
+  #     logit_teacher = 
 
-    # print ("Training Student")
+  #   print ("Checking Teacher's Test Accuracy")
+  #   acc = test_accuracy(session)
+  #   print('Test accuracy for Teacher: %.1f%%' % acc)
+
+    # print ("Training Student with Knowledge Distillation")
     # Train_Student(session)
+
+  sess = tf.Session()   
+  # Import graph from the path and recover session    
+  saver = tf.train.import_meta_graph(export_dir_teacher + model_name_save_teacher + '.meta', clear_devices=True)    
+  saver.restore(sess, export_dir_teacher + model_name_save_teacher)    
+  # Get activation function from the saved collection   
+  logit_teacher = tf.get_collection("teacher_model_logits")
+
+    
 
 
   
