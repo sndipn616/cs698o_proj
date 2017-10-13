@@ -260,9 +260,10 @@ def Train_Student(session):
         batch_data = []
         batch_labels = []
 
+        # feed_dict = {tf_train_dataset : new_batch_data, tf_train_labels : new_batch_labels}
         feed_dict = {tf_train_dataset : new_batch_data, tf_train_labels : new_batch_labels, 'x:0' : new_batch_data, 'y:0' : new_batch_labels}
         # _, l, predictions = session.run([optimizer_student, loss_student, prediction_student], feed_dict=feed_dict)
-        l, predictions, _, _ = session.run([loss_student, prediction_student, logits_teacher, prediction_teacher], feed_dict=feed_dict)
+        _, l, predictions, _, _ = session.run([optimizer_student, loss_student, prediction_student, logits_teacher, prediction_teacher], feed_dict=feed_dict)
 
         if minibatch_num % 100 == 0:
           print('Minibatch loss at step %d: %f' % (minibatch_num, l))          
@@ -285,11 +286,10 @@ patch_size = 3
 depth = 32
 num_hidden = 64
 num_epochs_teacher = 3
-num_epochs_student = 3
-alpha = 0.005
-T = 10
+num_epochs_student = 5
+T = 20
 
-alpha = 0
+alpha = 0.5
 
 graph_student_KD = tf.Graph()
 
@@ -421,9 +421,10 @@ with tf.device(current_device):
 
       loss_student = tf.reduce_mean(\
         tf.nn.softmax_cross_entropy_with_logits(labels=tf_train_labels, logits=logits_student)) \
-        + alpha*(tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=prediction_teacher_soft, logits=logits_student / T)))
+        + alpha*(tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=prediction_teacher_soft, logits=(logits_student / T))))
 
-      optimizer_student = tf.train.GradientDescentOptimizer(0.001).minimize(loss_student, var_list=student_parameters)
+      # loss_student = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=tf_train_labels, logits=logits_student))
+      optimizer_student = tf.train.GradientDescentOptimizer(0.0002).minimize(loss_student, var_list=student_parameters)
       prediction_student = tf.nn.softmax(logits_student)
 
       # tf.global_variables_initializer().run()
