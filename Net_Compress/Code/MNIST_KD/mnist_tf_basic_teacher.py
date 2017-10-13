@@ -90,8 +90,8 @@ def accuracy(predictions, labels):
           / predictions.shape[0])
 
 def num_correct_total(predictions, labels):
-  return np.sum(np.argmax(predictions, 1) == np.argmax(labels, 1)), predictions.shape[0]
-
+  temp = np.sum(np.argmax(predictions, 1) == np.argmax(labels, 1))
+  return temp, predictions.shape[0], predictions.shape[0] - temp
 
 def output_size_no_pool(input_size, filter_size, padding, conv_stride):
     if padding == 'same':
@@ -211,7 +211,7 @@ batch_size = 10
 patch_size = 3
 depth = 32
 num_hidden = 64
-num_epochs = 3
+num_epochs = 1
 alpha = 0.005
 
 graph_teacher = tf.Graph()
@@ -219,8 +219,8 @@ graph_teacher = tf.Graph()
 with graph_teacher.as_default():
 
     '''Input data'''
-    tf_train_dataset = tf.placeholder(tf.float32, shape=(batch_size, image_size, image_size, num_channels))
-    tf_train_labels = tf.placeholder(tf.float32, shape=(batch_size, num_labels))
+    tf_train_dataset = tf.placeholder(tf.float32, shape=(batch_size, image_size, image_size, num_channels), name='x')
+    tf_train_labels = tf.placeholder(tf.float32, shape=(batch_size, num_labels), name='y')
     # tf_valid_dataset = tf.constant(valid_dataset)
     # tf_test_dataset = tf.constant(test_dataset)
     # tf_test_dataset = tf.placeholder(tf.float32, shape=(batch_size, image_size, image_size, num_channels))
@@ -302,6 +302,7 @@ with graph_teacher.as_default():
     # logits = tf.matmul(hidden, layersm_weights_teacher) + layersm_biases_teacher
     '''Training computation'''   
     logits = teacher_model(tf_train_dataset)
+
     tf.add_to_collection("teacher_model_logits", logits)
     # loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=logits, labels=tf_train_labels))
     loss = tf.reduce_mean(
@@ -315,6 +316,8 @@ with graph_teacher.as_default():
 
     '''Predictions for the training, validation, and test data'''
     prediction = tf.nn.softmax(logits)
+
+    tf.add_to_collection("teacher_model_prediction", prediction)
 
 
 

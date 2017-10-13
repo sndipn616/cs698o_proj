@@ -91,7 +91,8 @@ def accuracy(predictions, labels):
           / predictions.shape[0])
 
 def num_correct_total(predictions, labels):
-  return np.sum(np.argmax(predictions, 1) == np.argmax(labels, 1)), predictions.shape[0]
+  temp = np.sum(np.argmax(predictions, 1) == np.argmax(labels, 1))
+  return temp, predictions.shape[0], predictions.shape[0] - temp
 
 
 def output_size_no_pool(input_size, filter_size, padding, conv_stride):

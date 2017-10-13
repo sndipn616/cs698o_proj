@@ -78,7 +78,8 @@ def accuracy(predictions, labels):
           / predictions.shape[0])
 
 def num_correct_total(predictions, labels):
-  return np.sum(np.argmax(predictions, 1) == np.argmax(labels, 1)), predictions.shape[0]
+  temp = np.sum(np.argmax(predictions, 1) == np.argmax(labels, 1))
+  return temp, predictions.shape[0], predictions.shape[0] - temp
 
 
 def output_size_no_pool(input_size, filter_size, padding, conv_stride):
@@ -110,6 +111,7 @@ def test_accuracy(session,teacher=True):
   NumLabels2 = testLabels.read(4)
   NumLabels2 = unpack('>I', NumLabels2)[0]
 
+  wrong = 0
   correct = 0
   total = 0
 
@@ -159,14 +161,15 @@ def test_accuracy(session,teacher=True):
         feed_dict = {tf_train_dataset : new_batch_data, tf_train_labels : new_batch_labels}
         [predictions] = session.run([prediction_student], feed_dict=feed_dict) 
 
-      c, t = num_correct_total(predictions, new_batch_labels)
+      c, t, w = num_correct_total(predictions, new_batch_labels)
       correct += c
       total += t
+      wrong += w
 
   testImages.close()
   testLabels.close()
 
-  return 100.0 * correct / total
+  return 100.0 * correct / total, wrong
 
 def Train_Teacher(session):  
   for epoch in range(num_epochs_teacher):
@@ -220,8 +223,8 @@ def Train_Teacher(session):
   model_saver = tf.train.Saver()
   model_saver.save(session, export_dir + model_name_save_teacher, write_meta_graph=True)
 
-  acc = test_accuracy(session)
-  print('Test accuracy for Teacher: %.1f%%' % acc)
+  acc, w = test_accuracy(session)
+  print('Number of test errors : %d and Test accuracy for Teacher: %.1f%%' % (w, acc))
 
 def Train_Student(session):
   for epoch in range(num_epochs_student):
@@ -266,7 +269,7 @@ def Train_Student(session):
         _, l, predictions, _, _ = session.run([optimizer_student, loss_student, prediction_student, logits_teacher, prediction_teacher], feed_dict=feed_dict)
 
         if minibatch_num % 100 == 0:
-          print('Minibatch loss at step %d: %f' % (minibatch_num, l))          
+          print('Minibatch loss at step %d and epoch %d : %f' % (minibatch_num, epoch, l))          
           print('Minibatch accuracy: %.1f%%' % accuracy(predictions, new_batch_labels))
 
     images.close()
@@ -286,10 +289,10 @@ patch_size = 3
 depth = 32
 num_hidden = 64
 num_epochs_teacher = 3
-num_epochs_student = 5
+num_epochs_student = 10
 T = 20
 
-alpha = 0.5
+alpha = 1.5
 
 graph_student_KD = tf.Graph()
 
@@ -375,8 +378,8 @@ with tf.device(current_device):
       
       
       '''Input data'''
-      tf_train_dataset = tf.placeholder(tf.float32, shape=(batch_size, image_size, image_size, num_channels))
-      tf_train_labels = tf.placeholder(tf.float32, shape=(batch_size, num_labels))
+      tf_train_dataset = tf.placeholder(tf.float32, shape=(batch_size, image_size, image_size, num_channels), name='data_X')
+      tf_train_labels = tf.placeholder(tf.float32, shape=(batch_size, num_labels), name='data_Y')
           
       
       '''Variables For Student'''
@@ -424,8 +427,10 @@ with tf.device(current_device):
         + alpha*(tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=prediction_teacher_soft, logits=(logits_student / T))))
 
       # loss_student = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=tf_train_labels, logits=logits_student))
-      optimizer_student = tf.train.GradientDescentOptimizer(0.0002).minimize(loss_student, var_list=student_parameters)
+      optimizer_student = tf.train.GradientDescentOptimizer(0.0001).minimize(loss_student, var_list=student_parameters)
       prediction_student = tf.nn.softmax(logits_student)
+
+      tf.add_to_collection("student_model_prediction", prediction_student)
 
       # tf.global_variables_initializer().run()
       # init_new_vars_op = tf.initialize_variables(student_parameters)
