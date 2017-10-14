@@ -217,7 +217,7 @@ batch_size = 100
 patch_size = 3
 prob = 0.5
 num_hidden = 800
-num_epochs = 3
+num_epochs = 5
 beta = 0.001
 
 
@@ -252,10 +252,10 @@ with graph_student.as_default():
     '''Teacher Model for Training'''
     def student_model_train(data):
       out = tf.matmul(tf_train_dataset, layer1_weights_student) + layer1_biases_student
-      out = tf.nn.dropout(tf.nn.relu(out), prob)
+      out = tf.nn.relu(out)
 
       out = tf.matmul(out, layer2_weights_student) + layer2_biases_student
-      out = tf.nn.dropout(tf.nn.relu(out), prob)
+      out = tf.nn.relu(out)
 
       out = tf.matmul(out, layer3_weights_student) + layer3_biases_student
 
@@ -280,13 +280,12 @@ with graph_student.as_default():
     tf.add_to_collection("student_model_logits", logits_student_eval)
     # loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=logits, labels=tf_train_labels))
     loss_student = tf.reduce_mean(
-    tf.nn.softmax_cross_entropy_with_logits(labels=tf_train_labels, logits=logits_student_train)) \
-    + beta*tf.nn.l2_loss(layer1_weights_student) + beta*tf.nn.l2_loss(layer2_weights_student) + beta*tf.nn.l2_loss(layer3_weights_student)
+    tf.nn.softmax_cross_entropy_with_logits(labels=tf_train_labels, logits=logits_student_train)) 
 
     '''Optimizer'''
     # Learning rate of 0.05
     # optimizer = tf.train.GradientDescentOptimizer(0.001).minimize(loss)
-    optimizer_student = tf.train.AdamOptimizer(learning_rate=0.001).minimize(loss_student) 
+    optimizer_student = tf.train.AdamOptimizer(learning_rate=0.0001).minimize(loss_student) 
 
     '''Predictions for the training, validation, and test data'''
     prediction_student_train = tf.nn.softmax(logits_student_train)

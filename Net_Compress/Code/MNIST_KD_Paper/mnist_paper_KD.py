@@ -239,7 +239,7 @@ num_epochs_student = 5
 T = 20
 prob = 0.5
 
-alpha = 0
+alpha = 1.5
 beta = 0.001
 
 graph_student = tf.Graph()
@@ -368,10 +368,10 @@ with tf.device(current_device):
       '''Teacher Model for Training'''
       def student_model_train(data):
         out = tf.matmul(tf_train_dataset, layer1_weights_student) + layer1_biases_student
-        out = tf.nn.dropout(tf.nn.relu(out), prob)
+        out = tf.nn.relu(out)
 
         out = tf.matmul(out, layer2_weights_student) + layer2_biases_student
-        out = tf.nn.dropout(tf.nn.relu(out), prob)
+        out = tf.nn.relu(out)
 
         out = tf.matmul(out, layer3_weights_student) + layer3_biases_student
 
@@ -399,7 +399,7 @@ with tf.device(current_device):
       # loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=logits, labels=tf_train_labels))
       loss_student = tf.reduce_mean(
       tf.nn.softmax_cross_entropy_with_logits(labels=tf_train_labels, logits=logits_student_train)) \
-      + beta*tf.nn.l2_loss(layer1_weights_student) + beta*tf.nn.l2_loss(layer2_weights_student) + beta*tf.nn.l2_loss(layer3_weights_student)\
+      # + beta*tf.nn.l2_loss(layer1_weights_student) + beta*tf.nn.l2_loss(layer2_weights_student) + beta*tf.nn.l2_loss(layer3_weights_student)\
       + alpha*(tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=prediction_teacher_soft, logits=(logits_student_train / T))))
 
       '''Optimizer'''
