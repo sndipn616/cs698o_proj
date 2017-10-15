@@ -145,7 +145,7 @@ def test_accuracy(session):
       batch_labels = []
 
       feed_dict = {tf_train_dataset : new_batch_data, tf_train_labels : new_batch_labels}
-      [predictions] = session.run([prediction_eval], feed_dict=feed_dict)
+      [predictions] = session.run([prediction_teacher_eval], feed_dict=feed_dict)
 
       c, t, w = num_correct_total(predictions, new_batch_labels)
       correct += c
@@ -195,7 +195,7 @@ def Train_Teacher(session):
         batch_labels = []
 
         feed_dict = {tf_train_dataset : new_batch_data, tf_train_labels : new_batch_labels}
-        _, l, predictions = session.run([optimizer, loss, prediction_train], feed_dict=feed_dict)
+        _, l, predictions = session.run([optimizer_teacher, loss_teacher, prediction_teacher_train], feed_dict=feed_dict)
 
         if minibatch_num % 100 == 0:
           print('Minibatch loss at step %d: %f' % (minibatch_num, l))          
@@ -274,25 +274,25 @@ with graph_teacher.as_default():
        
     # logits = tf.matmul(hidden, layersm_weights_teacher) + layersm_biases_teacher
     '''Training computation'''   
-    logits_train = teacher_model_train(tf_train_dataset)
-    logits_eval = teacher_model_eval(tf_train_dataset)
+    logits_teacher_train = teacher_model_train(tf_train_dataset)
+    logits_teacher_eval = teacher_model_eval(tf_train_dataset)
 
-    tf.add_to_collection("teacher_model_logits", logits_eval)
+    tf.add_to_collection("teacher_model_logits", logits_teacher_eval)
     # loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=logits, labels=tf_train_labels))
-    loss = tf.reduce_mean(
-    tf.nn.softmax_cross_entropy_with_logits(labels=tf_train_labels, logits=logits_train)) \
-    + beta*tf.nn.l2_loss(layer1_weights_teacher) + beta*tf.nn.l2_loss(layer2_weights_teacher) + beta*tf.nn.l2_loss(layer3_weights_teacher)
+    loss_teacher = tf.reduce_mean(
+    tf.nn.softmax_cross_entropy_with_logits(labels=tf_train_labels, logits=logits_teacher_train)) #\
+    # + beta*tf.nn.l2_loss(layer1_weights_teacher) + beta*tf.nn.l2_loss(layer2_weights_teacher) + beta*tf.nn.l2_loss(layer3_weights_teacher)
 
     '''Optimizer'''
     # Learning rate of 0.05
     # optimizer = tf.train.GradientDescentOptimizer(0.001).minimize(loss)
-    optimizer = tf.train.AdamOptimizer(learning_rate=0.00001).minimize(loss) 
+    optimizer_teacher = tf.train.AdamOptimizer(learning_rate=0.0001).minimize(loss_teacher) 
 
     '''Predictions for the training, validation, and test data'''
-    prediction_train = tf.nn.softmax(logits_train)
-    prediction_eval = tf.nn.softmax(logits_eval)
+    prediction_teacher_train = tf.nn.softmax(logits_teacher_train)
+    prediction_teacher_eval = tf.nn.softmax(logits_teacher_eval)
 
-    tf.add_to_collection("teacher_model_prediction", prediction_eval)
+    tf.add_to_collection("teacher_model_prediction", prediction_teacher_eval)
 
 
 
