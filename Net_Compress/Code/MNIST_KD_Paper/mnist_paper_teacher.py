@@ -205,7 +205,7 @@ def Train_Teacher(session):
     labels.close()
         
 
-  model_saver = tf.train.Saver()
+  model_saver = tf.train.Saver(var_list=teacher_parameters)
   model_saver.save(session, export_dir + model_name_save_teacher, write_meta_graph=True)
 
   acc, w = test_accuracy(session)
@@ -246,7 +246,7 @@ with graph_teacher.as_default():
     layer3_weights_teacher = tf.Variable(tf.truncated_normal([num_hidden, num_labels], stddev=0.1), name='l3wt')
     layer3_biases_teacher = tf.Variable(tf.constant(1.0, shape=[num_labels]), name='l3bt')
 
-    
+    teacher_parameters = [layer1_weights_teacher, layer1_biases_teacher, layer2_weights_teacher, layer2_biases_teacher, layer3_weights_teacher, layer3_biases_teacher]
 
     # data = tf_train_dataset
     '''Teacher Model for Training'''
@@ -300,9 +300,9 @@ with tf.device(current_device):
   with tf.Session(graph=graph_teacher) as session:
     tf.global_variables_initializer().run()
     print('Initialized')
-    if os.path.isfile(export_dir + model_name_save_teacher + '.meta'):
-      saver = tf.train.Saver()
-      saver.restore(session, export_dir + model_name_save_teacher)
+    # if os.path.isfile(export_dir + model_name_save_teacher + '.meta'):
+    #   saver = tf.train.Saver(var_list=teacher_parameters)
+    #   saver.restore(session, export_dir + model_name_save_teacher)
 
     Train_Teacher(session)  
 

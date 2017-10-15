@@ -145,7 +145,7 @@ def test_accuracy(session):
       batch_labels = []
 
       feed_dict = {tf_train_dataset : new_batch_data, tf_train_labels : new_batch_labels}
-      [predictions] = session.run([prediction_student_eval], feed_dict=feed_dict)
+      [predictions] = session.run([prediction_student], feed_dict=feed_dict)
 
       c, t, w = num_correct_total(predictions, new_batch_labels)
       correct += c
@@ -195,7 +195,7 @@ def Train_Student(session):
         batch_labels = []
 
         feed_dict = {tf_train_dataset : new_batch_data, tf_train_labels : new_batch_labels}
-        _, l, predictions = session.run([optimizer_student, loss_student, prediction_student_train], feed_dict=feed_dict)
+        _, l, predictions = session.run([optimizer_student, loss_student, prediction_student], feed_dict=feed_dict)
 
         if minibatch_num % 100 == 0:
           print('Minibatch loss at step %d: %f' % (minibatch_num, l))          
@@ -205,7 +205,7 @@ def Train_Student(session):
     labels.close()
         
 
-  model_saver = tf.train.Saver()
+  model_saver = tf.train.Saver(var_list=student_parameters)
   model_saver.save(session, export_dir + model_name_save_student, write_meta_graph=True)
 
   acc, w = test_accuracy(session)
@@ -246,11 +246,9 @@ with graph_student.as_default():
     layer3_weights_student = tf.Variable(tf.truncated_normal([num_hidden, num_labels], stddev=0.1), name='l3ws')
     layer3_biases_student = tf.Variable(tf.constant(1.0, shape=[num_labels]), name='l3bs')
 
-    
+    student_parameters = [layer1_weights_student, layer1_biases_student, layer2_weights_student, layer2_biases_student, layer3_weights_student, layer3_biases_student]
 
-    # data = tf_train_dataset
-    '''Teacher Model for Training'''
-    def student_model_train(data):
+    def student_model(data):
       out = tf.matmul(tf_train_dataset, layer1_weights_student) + layer1_biases_student
       out = tf.nn.relu(out)
 
@@ -261,37 +259,26 @@ with graph_student.as_default():
 
       return out
 
-    def student_model_eval(data):
-      out = tf.matmul(tf_train_dataset, layer1_weights_student) + layer1_biases_student
-      out = tf.nn.relu(out)
-
-      out = tf.matmul(out, layer2_weights_student) + layer2_biases_student
-      out = tf.nn.relu(out)
-
-      out = tf.matmul(out, layer3_weights_student) + layer3_biases_student
-
-      return out
-       
     # logits = tf.matmul(hidden, layersm_weights_teacher) + layersm_biases_teacher
     '''Training computation'''   
-    logits_student_train = student_model_train(tf_train_dataset)
-    logits_student_eval = student_model_eval(tf_train_dataset)
+    logits_student = student_model(tf_train_dataset)
+    
 
-    tf.add_to_collection("student_model_logits", logits_student_eval)
+    tf.add_to_collection("student_model_logits", logits_student)
     # loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=logits, labels=tf_train_labels))
     loss_student = tf.reduce_mean(
-    tf.nn.softmax_cross_entropy_with_logits(labels=tf_train_labels, logits=logits_student_train)) 
+    tf.nn.softmax_cross_entropy_with_logits(labels=tf_train_labels, logits=logits_student)) 
 
     '''Optimizer'''
     # Learning rate of 0.05
     # optimizer = tf.train.GradientDescentOptimizer(0.001).minimize(loss)
-    optimizer_student = tf.train.AdamOptimizer(learning_rate=0.0001).minimize(loss_student) 
+    optimizer_student = tf.train.AdamOptimizer(learning_rate=0.00001).minimize(loss_student) 
 
     '''Predictions for the training, validation, and test data'''
-    prediction_student_train = tf.nn.softmax(logits_student_train)
-    prediction_student_eval = tf.nn.softmax(logits_student_eval)
+    prediction_student = tf.nn.softmax(logits_student)
+    
+    tf.add_to_collection("student_model_prediction", prediction_student)
 
-    tf.add_to_collection("student_model_prediction", prediction_student_eval)
 
 
 
@@ -300,7 +287,7 @@ with tf.device(current_device):
     tf.global_variables_initializer().run()
     print('Initialized')
     if os.path.isfile(export_dir + model_name_save_student + '.meta'):
-      saver = tf.train.Saver()
+      saver = tf.train.Saver(var_list=student_parameters)
       saver.restore(session, export_dir + model_name_save_student)
 
     Train_Student(session)  
