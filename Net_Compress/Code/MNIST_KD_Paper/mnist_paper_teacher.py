@@ -209,7 +209,7 @@ def Train_Teacher(session):
   model_saver.save(session, export_dir + model_name_save_teacher, write_meta_graph=True)
 
   acc, w = test_accuracy(session)
-  print('Number of wrong classificiation: %d Test accuracy: %.1f%%' % (w, acc))
+  print('Teacher : Number of wrong classificiation: %d Test accuracy: %.1f%%' % (w, acc))
 
 
 
@@ -217,94 +217,98 @@ batch_size = 100
 patch_size = 3
 prob = 0.5
 num_hidden = 1200
-num_epochs = 3
+num_epochs = 5
 beta = 0.001
 
 
+# def make_teacher_graph():
 graph_teacher = tf.Graph()
 
 with graph_teacher.as_default():
 
-    '''Input data'''
-    tf_train_dataset = tf.placeholder(tf.float32, shape=(batch_size, image_size * image_size * num_channels), name='x')
-    tf_train_labels = tf.placeholder(tf.float32, shape=(batch_size, num_labels), name='y')
-    # tf_valid_dataset = tf.constant(valid_dataset)
-    # tf_test_dataset = tf.constant(test_dataset)
-    # tf_test_dataset = tf.placeholder(tf.float32, shape=(batch_size, image_size, image_size, num_channels))
-    # tf_test_labels = tf.placeholder(tf.float32, shape=(batch_size, num_labels))
+  '''Input data'''
+  tf_train_dataset = tf.placeholder(tf.float32, shape=(batch_size, image_size * image_size * num_channels), name='x')
+  tf_train_labels = tf.placeholder(tf.float32, shape=(batch_size, num_labels), name='y')
+  # tf_valid_dataset = tf.constant(valid_dataset)
+  # tf_test_dataset = tf.constant(test_dataset)
+  # tf_test_dataset = tf.placeholder(tf.float32, shape=(batch_size, image_size, image_size, num_channels))
+  # tf_test_labels = tf.placeholder(tf.float32, shape=(batch_size, num_labels))
 
-    '''Variables For Teacher'''
-    # Input to Hidden1 Layer    
-    layer1_weights_teacher = tf.Variable(tf.truncated_normal([image_size * image_size * num_channels, num_hidden], stddev=0.1), name='l1wt')
-    layer1_biases_teacher = tf.Variable(tf.zeros([num_hidden]), name='l1bt')
-    
-    # Hidden1 to Hidden2 Layer
-    layer2_weights_teacher = tf.Variable(tf.truncated_normal([num_hidden, num_hidden], stddev=0.1), name='l2wt')
-    layer2_biases_teacher = tf.Variable(tf.constant(1.0, shape=[num_hidden]), name='l2bt')
+  '''Variables For Teacher'''
+  # Input to Hidden1 Layer    
+  layer1_weights_teacher = tf.Variable(tf.truncated_normal([image_size * image_size * num_channels, num_hidden], stddev=0.1), name='l1wt')
+  layer1_biases_teacher = tf.Variable(tf.zeros([num_hidden]), name='l1bt')
+  
+  # Hidden1 to Hidden2 Layer
+  layer2_weights_teacher = tf.Variable(tf.truncated_normal([num_hidden, num_hidden], stddev=0.1), name='l2wt')
+  layer2_biases_teacher = tf.Variable(tf.constant(1.0, shape=[num_hidden]), name='l2bt')
 
-    # Hidden2 to Output Layer
-    layer3_weights_teacher = tf.Variable(tf.truncated_normal([num_hidden, num_labels], stddev=0.1), name='l3wt')
-    layer3_biases_teacher = tf.Variable(tf.constant(1.0, shape=[num_labels]), name='l3bt')
+  # Hidden2 to Output Layer
+  layer3_weights_teacher = tf.Variable(tf.truncated_normal([num_hidden, num_labels], stddev=0.1), name='l3wt')
+  layer3_biases_teacher = tf.Variable(tf.constant(1.0, shape=[num_labels]), name='l3bt')
 
-    teacher_parameters = [layer1_weights_teacher, layer1_biases_teacher, layer2_weights_teacher, layer2_biases_teacher, layer3_weights_teacher, layer3_biases_teacher]
+  teacher_parameters = [layer1_weights_teacher, layer1_biases_teacher, layer2_weights_teacher, layer2_biases_teacher, layer3_weights_teacher, layer3_biases_teacher]
 
-    # data = tf_train_dataset
-    '''Teacher Model for Training'''
-    def teacher_model_train(data):
-      out = tf.matmul(tf_train_dataset, layer1_weights_teacher) + layer1_biases_teacher
-      out = tf.nn.dropout(tf.nn.relu(out), prob)
+  # data = tf_train_dataset
+  '''Teacher Model for Training'''
+  def teacher_model_train(data):
+    out = tf.matmul(tf_train_dataset, layer1_weights_teacher) + layer1_biases_teacher
+    out = tf.nn.dropout(tf.nn.relu(out), prob)
 
-      out = tf.matmul(out, layer2_weights_teacher) + layer2_biases_teacher
-      out = tf.nn.dropout(tf.nn.relu(out), prob)
+    out = tf.matmul(out, layer2_weights_teacher) + layer2_biases_teacher
+    out = tf.nn.dropout(tf.nn.relu(out), prob)
 
-      out = tf.matmul(out, layer3_weights_teacher) + layer3_biases_teacher
+    out = tf.matmul(out, layer3_weights_teacher) + layer3_biases_teacher
 
-      return out
+    return out
 
-    def teacher_model_eval(data):
-      out = tf.matmul(tf_train_dataset, layer1_weights_teacher) + layer1_biases_teacher
-      out = tf.nn.relu(out)
+  def teacher_model_eval(data):
+    out = tf.matmul(tf_train_dataset, layer1_weights_teacher) + layer1_biases_teacher
+    out = tf.nn.relu(out)
 
-      out = tf.matmul(out, layer2_weights_teacher) + layer2_biases_teacher
-      out = tf.nn.relu(out)
+    out = tf.matmul(out, layer2_weights_teacher) + layer2_biases_teacher
+    out = tf.nn.relu(out)
 
-      out = tf.matmul(out, layer3_weights_teacher) + layer3_biases_teacher
+    out = tf.matmul(out, layer3_weights_teacher) + layer3_biases_teacher
 
-      return out
-       
-    # logits = tf.matmul(hidden, layersm_weights_teacher) + layersm_biases_teacher
-    '''Training computation'''   
-    logits_teacher_train = teacher_model_train(tf_train_dataset)
-    logits_teacher_eval = teacher_model_eval(tf_train_dataset)
+    return out
+     
+  # logits = tf.matmul(hidden, layersm_weights_teacher) + layersm_biases_teacher
+  '''Training computation'''   
+  logits_teacher_train = teacher_model_train(tf_train_dataset)
+  logits_teacher_eval = teacher_model_eval(tf_train_dataset)
 
-    tf.add_to_collection("teacher_model_logits", logits_teacher_eval)
-    # loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=logits, labels=tf_train_labels))
-    loss_teacher = tf.reduce_mean(
-    tf.nn.softmax_cross_entropy_with_logits(labels=tf_train_labels, logits=logits_teacher_train)) #\
-    # + beta*tf.nn.l2_loss(layer1_weights_teacher) + beta*tf.nn.l2_loss(layer2_weights_teacher) + beta*tf.nn.l2_loss(layer3_weights_teacher)
+  tf.add_to_collection("teacher_model_logits", logits_teacher_eval)
+  # loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=logits, labels=tf_train_labels))
+  loss_teacher = tf.reduce_mean(
+  tf.nn.softmax_cross_entropy_with_logits(labels=tf_train_labels, logits=logits_teacher_train)) #\
+  # + beta*tf.nn.l2_loss(layer1_weights_teacher) + beta*tf.nn.l2_loss(layer2_weights_teacher) + beta*tf.nn.l2_loss(layer3_weights_teacher)
 
-    '''Optimizer'''
-    # Learning rate of 0.05
-    # optimizer = tf.train.GradientDescentOptimizer(0.001).minimize(loss)
-    optimizer_teacher = tf.train.AdamOptimizer(learning_rate=0.0001).minimize(loss_teacher) 
+  '''Optimizer'''
+  # Learning rate of 0.05
+  optimizer_teacher = tf.train.GradientDescentOptimizer(learning_rate=0.0001).minimize(loss_teacher)
+  # optimizer_teacher = tf.train.AdamOptimizer(learning_rate=0.00001).minimize(loss_teacher) 
 
-    '''Predictions for the training, validation, and test data'''
-    prediction_teacher_train = tf.nn.softmax(logits_teacher_train)
-    prediction_teacher_eval = tf.nn.softmax(logits_teacher_eval)
+  '''Predictions for the training, validation, and test data'''
+  prediction_teacher_train = tf.nn.softmax(logits_teacher_train)
+  prediction_teacher_eval = tf.nn.softmax(logits_teacher_eval)
 
-    tf.add_to_collection("teacher_model_prediction", prediction_teacher_eval)
+  tf.add_to_collection("teacher_model_prediction", prediction_teacher_eval)
+
+  # return graph_teacher
 
 
+def pre_train_teacher():
+  with tf.device(current_device):
+    # graph_teacher = make_teacher_graph()  
+    with tf.Session(graph=graph_teacher) as session:
+      tf.global_variables_initializer().run()
+      print('Initialized')
+      if os.path.isfile(export_dir + model_name_save_teacher + '.meta'):
+        saver = tf.train.Saver(var_list=teacher_parameters)
+        saver.restore(session, export_dir + model_name_save_teacher)
 
-with tf.device(current_device):  
-  with tf.Session(graph=graph_teacher) as session:
-    tf.global_variables_initializer().run()
-    print('Initialized')
-    # if os.path.isfile(export_dir + model_name_save_teacher + '.meta'):
-    #   saver = tf.train.Saver(var_list=teacher_parameters)
-    #   saver.restore(session, export_dir + model_name_save_teacher)
-
-    Train_Teacher(session)  
+      Train_Teacher(session)  
 
   
     

@@ -209,7 +209,7 @@ def Train_Student(session):
   model_saver.save(session, export_dir + model_name_save_student, write_meta_graph=True)
 
   acc, w = test_accuracy(session)
-  print('Number of wrong classificiation: %d Test accuracy: %.1f%%' % (w, acc))
+  print('Student : Number of wrong classificiation: %d Test accuracy: %.1f%%' % (w, acc))
 
 
 
@@ -220,77 +220,80 @@ num_hidden = 800
 num_epochs = 5
 beta = 0.001
 
-
+# def make_student_graph():
 graph_student = tf.Graph()
 
 with graph_student.as_default():
 
-    '''Input data'''
-    tf_train_dataset = tf.placeholder(tf.float32, shape=(batch_size, image_size * image_size * num_channels), name='x')
-    tf_train_labels = tf.placeholder(tf.float32, shape=(batch_size, num_labels), name='y')
-    # tf_valid_dataset = tf.constant(valid_dataset)
-    # tf_test_dataset = tf.constant(test_dataset)
-    # tf_test_dataset = tf.placeholder(tf.float32, shape=(batch_size, image_size, image_size, num_channels))
-    # tf_test_labels = tf.placeholder(tf.float32, shape=(batch_size, num_labels))
+  '''Input data'''
+  tf_train_dataset = tf.placeholder(tf.float32, shape=(batch_size, image_size * image_size * num_channels), name='x')
+  tf_train_labels = tf.placeholder(tf.float32, shape=(batch_size, num_labels), name='y')
+  # tf_valid_dataset = tf.constant(valid_dataset)
+  # tf_test_dataset = tf.constant(test_dataset)
+  # tf_test_dataset = tf.placeholder(tf.float32, shape=(batch_size, image_size, image_size, num_channels))
+  # tf_test_labels = tf.placeholder(tf.float32, shape=(batch_size, num_labels))
 
-    '''Variables For Teacher'''
-    # Input to Hidden1 Layer    
-    layer1_weights_student = tf.Variable(tf.truncated_normal([image_size * image_size * num_channels, num_hidden], stddev=0.1), name='l1ws')
-    layer1_biases_student = tf.Variable(tf.zeros([num_hidden]), name='l1bs')
-    
-    # Hidden1 to Hidden2 Layer
-    layer2_weights_student = tf.Variable(tf.truncated_normal([num_hidden, num_hidden], stddev=0.1), name='l2ws')
-    layer2_biases_student = tf.Variable(tf.constant(1.0, shape=[num_hidden]), name='l2bs')
+  '''Variables For Student'''
+  # Input to Hidden1 Layer    
+  layer1_weights_student = tf.Variable(tf.truncated_normal([image_size * image_size * num_channels, num_hidden], stddev=0.1), name='l1ws')
+  layer1_biases_student = tf.Variable(tf.zeros([num_hidden]), name='l1bs')
+  
+  # Hidden1 to Hidden2 Layer
+  layer2_weights_student = tf.Variable(tf.truncated_normal([num_hidden, num_hidden], stddev=0.1), name='l2ws')
+  layer2_biases_student = tf.Variable(tf.constant(1.0, shape=[num_hidden]), name='l2bs')
 
-    # Hidden2 to Output Layer
-    layer3_weights_student = tf.Variable(tf.truncated_normal([num_hidden, num_labels], stddev=0.1), name='l3ws')
-    layer3_biases_student = tf.Variable(tf.constant(1.0, shape=[num_labels]), name='l3bs')
+  # Hidden2 to Output Layer
+  layer3_weights_student = tf.Variable(tf.truncated_normal([num_hidden, num_labels], stddev=0.1), name='l3ws')
+  layer3_biases_student = tf.Variable(tf.constant(1.0, shape=[num_labels]), name='l3bs')
 
-    student_parameters = [layer1_weights_student, layer1_biases_student, layer2_weights_student, layer2_biases_student, layer3_weights_student, layer3_biases_student]
+  student_parameters = [layer1_weights_student, layer1_biases_student, layer2_weights_student, layer2_biases_student, layer3_weights_student, layer3_biases_student]
 
-    def student_model(data):
-      out = tf.matmul(tf_train_dataset, layer1_weights_student) + layer1_biases_student
-      out = tf.nn.relu(out)
+  def student_model(data):
+    out = tf.matmul(tf_train_dataset, layer1_weights_student) + layer1_biases_student
+    out = tf.nn.relu(out)
 
-      out = tf.matmul(out, layer2_weights_student) + layer2_biases_student
-      out = tf.nn.relu(out)
+    out = tf.matmul(out, layer2_weights_student) + layer2_biases_student
+    out = tf.nn.relu(out)
 
-      out = tf.matmul(out, layer3_weights_student) + layer3_biases_student
+    out = tf.matmul(out, layer3_weights_student) + layer3_biases_student
 
-      return out
+    return out
 
-    # logits = tf.matmul(hidden, layersm_weights_teacher) + layersm_biases_teacher
-    '''Training computation'''   
-    logits_student = student_model(tf_train_dataset)
-    
+  # logits = tf.matmul(hidden, layersm_weights_teacher) + layersm_biases_teacher
+  '''Training computation'''   
+  logits_student = student_model(tf_train_dataset)
+  
 
-    tf.add_to_collection("student_model_logits", logits_student)
-    # loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=logits, labels=tf_train_labels))
-    loss_student = tf.reduce_mean(
-    tf.nn.softmax_cross_entropy_with_logits(labels=tf_train_labels, logits=logits_student)) 
+  tf.add_to_collection("student_model_logits", logits_student)
+  # loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=logits, labels=tf_train_labels))
+  loss_student = tf.reduce_mean(
+  tf.nn.softmax_cross_entropy_with_logits(labels=tf_train_labels, logits=logits_student)) 
 
-    '''Optimizer'''
-    # Learning rate of 0.05
-    # optimizer = tf.train.GradientDescentOptimizer(0.001).minimize(loss)
-    optimizer_student = tf.train.AdamOptimizer(learning_rate=0.00001).minimize(loss_student) 
+  '''Optimizer'''
+  # Learning rate of 0.05
+  optimizer_student = tf.train.GradientDescentOptimizer(learning_rate=0.0001).minimize(loss_student)
+  # optimizer_student = tf.train.AdamOptimizer(learning_rate=0.0001).minimize(loss_student) 
 
-    '''Predictions for the training, validation, and test data'''
-    prediction_student = tf.nn.softmax(logits_student)
-    
-    tf.add_to_collection("student_model_prediction", prediction_student)
+  '''Predictions for the training, validation, and test data'''
+  prediction_student = tf.nn.softmax(logits_student)
+  
+  tf.add_to_collection("student_model_prediction", prediction_student)
+
+  # return graph_student
 
 
 
+def pre_train_student():
+  with tf.device(current_device): 
+    # graph_student = make_student_graph() 
+    with tf.Session(graph=graph_student) as session:
+      tf.global_variables_initializer().run()
+      print('Initialized')
+      if os.path.isfile(export_dir + model_name_save_student + '.meta'):
+        saver = tf.train.Saver(var_list=student_parameters)
+        saver.restore(session, export_dir + model_name_save_student)
 
-with tf.device(current_device):  
-  with tf.Session(graph=graph_student) as session:
-    tf.global_variables_initializer().run()
-    print('Initialized')
-    if os.path.isfile(export_dir + model_name_save_student + '.meta'):
-      saver = tf.train.Saver(var_list=student_parameters)
-      saver.restore(session, export_dir + model_name_save_student)
-
-    Train_Student(session)  
+      Train_Student(session)  
 
   
     
