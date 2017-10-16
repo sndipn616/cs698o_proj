@@ -217,7 +217,7 @@ batch_size = 100
 patch_size = 3
 prob = 0.5
 num_hidden = 1200
-num_epochs = 5
+num_epochs = 1
 beta = 0.001
 
 
@@ -281,12 +281,12 @@ with graph_teacher.as_default():
   tf.add_to_collection("teacher_model_logits", logits_teacher_eval)
   # loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=logits, labels=tf_train_labels))
   loss_teacher = tf.reduce_mean(
-  tf.nn.softmax_cross_entropy_with_logits(labels=tf_train_labels, logits=logits_teacher_train)) #\
-  # + beta*tf.nn.l2_loss(layer1_weights_teacher) + beta*tf.nn.l2_loss(layer2_weights_teacher) + beta*tf.nn.l2_loss(layer3_weights_teacher)
+  tf.nn.softmax_cross_entropy_with_logits(labels=tf_train_labels, logits=logits_teacher_train))\
+  + beta*tf.nn.l2_loss(layer1_weights_teacher) + beta*tf.nn.l2_loss(layer2_weights_teacher) + beta*tf.nn.l2_loss(layer3_weights_teacher)
 
   '''Optimizer'''
   # Learning rate of 0.05
-  optimizer_teacher = tf.train.GradientDescentOptimizer(learning_rate=0.0001).minimize(loss_teacher)
+  optimizer_teacher = tf.train.GradientDescentOptimizer(learning_rate=0.00001).minimize(loss_teacher)
   # optimizer_teacher = tf.train.AdamOptimizer(learning_rate=0.00001).minimize(loss_teacher) 
 
   '''Predictions for the training, validation, and test data'''
