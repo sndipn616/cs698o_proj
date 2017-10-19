@@ -16,7 +16,8 @@ current_device = '/cpu:0'
 export_dir = 'Disc_Model/'
 model_name_save_disc = 'disc_model'
 data_dir = 'Disc_data/'
-
+filename_train = 'disc_train.txt'
+filename_test = 'disc_test.txt'
 # Reformat into a TensorFlow-friendly shape:
 # - convolutions need the image data formatted as a cube (width by height by #channels)
 # - labels as float 1-hot encodings.
@@ -54,7 +55,7 @@ def num_correct_total(predictions, labels):
 
 
 
-def test_accuracy(session,teacher=True):  
+def test_accuracy(session):  
 
   wrong = 0
   correct = 0
@@ -65,46 +66,37 @@ def test_accuracy(session,teacher=True):
   count_in_batch = 0
   minibatch_num = 0  
 
-  for i in range(NumLabels2):      
-    CurrImage = np.zeros((NumRows2,NumColumns2), dtype=np.float32)
-    for row in range(NumRows2):
-      for col in range(NumColumns2):
-        pixelValue = testImages.read(1)  
-        pixelValue = unpack('>B', pixelValue)[0]
-        # print (pixelValue)
-        CurrImage[row][col] = pixelValue * 1.0
-        
-        
-    batch_data.append(CurrImage)
-    # print (CurrImage)
-    labelValue = testLabels.read(1)      
-    labelValue = unpack('>B', labelValue)[0]
-    batch_labels.append(labelValue)
-
+  f = open(data_dir + filename_test,'r') 
+  line = f.readline()
+  while line:
+    line = line.strip('\n')
+    line = eval(line)
+    line_y = line[10:12]
+    line_x = line[0:10]
+    batch_data.append(line_x)
+    batch_labels.append(line_y)
+    line = f.readline()
     count_in_batch += 1
     if count_in_batch >= batch_size:
       count_in_batch = 0
       
       minibatch_num += 1
 
-      batch_data = np.array(batch_data)
-      batch_labels = np.array(batch_labels)
-
-      new_batch_data, new_batch_labels = reformat(batch_data, batch_labels)
+      new_batch_data = np.array(batch_data)
+      new_batch_labels = np.array(batch_labels)
 
       batch_data = []
       batch_labels = []
-      
+
       feed_dict = {tf_train_dataset : new_batch_data, tf_train_labels : new_batch_labels}
-      if teacher:
-        [predictions] = session.run([prediction_teacher_eval], feed_dict=feed_dict)
-      else:
-        [predictions] = session.run([prediction_student], feed_dict=feed_dict)
+      [predictions] = session.run([prediction_disc], feed_dict=feed_dict)
 
       c, t, w = num_correct_total(predictions, new_batch_labels)
       correct += c
       total += t
       wrong += w  
+
+  f.close()
 
   return 100.0 * correct / total, wrong
 
@@ -115,73 +107,53 @@ def Train_Disc(session):
     batch_labels = []
     count_in_batch = 0
     minibatch_num = 0
-    images, labels, NumLabels, NumRows, NumColumns = return_pointers()
-    for i in range(NumLabels):      
-      CurrImage = np.zeros((NumRows,NumColumns), dtype=np.float32)
-      for row in range(NumRows):
-        for col in range(NumColumns):
-          pixelValue = images.read(1)  
-          pixelValue = unpack('>B', pixelValue)[0]
-          # print (pixelValue)
-          CurrImage[row][col] = pixelValue * 1.0
-          
-          
-      batch_data.append(CurrImage)
-      # print (CurrImage)
-      labelValue = labels.read(1)      
-      labelValue = unpack('>B', labelValue)[0]
-      batch_labels.append(labelValue)
+    num_train_ex = 90000
 
+    f = open(data_dir + filename_train,'r') 
+    line = f.readline() 
+    while line:
+      line = line.strip('\n')
+      line = eval(line)
+      line_y = line[10:12]
+      line_x = line[0:10]
+      batch_data.append(line_x)
+      batch_labels.append(line_y)
+      line = f.readline()
       count_in_batch += 1
       if count_in_batch >= batch_size:
         count_in_batch = 0
-        # CurrImage = np.zeros((batch_size,NumColumns), dtype=uint8)
+        
         minibatch_num += 1
 
-        batch_data = np.array(batch_data)
-        batch_labels = np.array(batch_labels)
-
-        new_batch_data, new_batch_labels = reformat(batch_data, batch_labels)
+        new_batch_data = np.array(batch_data)
+        new_batch_labels = np.array(batch_labels)
 
         batch_data = []
         batch_labels = []
 
         feed_dict = {tf_train_dataset : new_batch_data, tf_train_labels : new_batch_labels}
-        # feed_dict = {tf_train_dataset : new_batch_data, tf_train_labels : new_batch_labels, 'x:0' : new_batch_data, 'y:0' : new_batch_labels}
-        _, l, predictions = session.run([optimizer_student, loss_student, prediction_student], feed_dict=feed_dict)
-        # l, predictions, _, _ = session.run([loss_student, prediction_student, logits_teacher, prediction_teacher], feed_dict=feed_dict)
 
-        if minibatch_num % 100 == 0:
-          # print (type(l))
+        _, l, predictions = session.run([optimizer_disc, loss_disc, prediction_disc], feed_dict=feed_dict)
+        
+        if minibatch_num % 100 == 0:         
           print('Minibatch loss at step %d and epoch %d : %f' % (minibatch_num, epoch, l))          
           print('Minibatch accuracy: %.1f%%' % accuracy(predictions, new_batch_labels))
 
-    images.close()
-    labels.close()
-        
+    f.close()        
 
   model_saver = tf.train.Saver(var_list=disc_parameters)
   model_saver.save(session, export_dir + model_name_save_disc, write_meta_graph=True)
 
-  acc, w = test_accuracy(session, teacher=False)
-  print('Student : alpha = %f, T = %d, Number of wrong classificiation: %d Test accuracy: %.1f%%' % (alpha, T, w, acc))
+  acc, w = test_accuracy(session)
+  print('Number of wrong classificiation: %d Test accuracy: %.1f%%' % (w, acc))
 
   
 
 batch_size = 100
-patch_size = 3
-depth = 32
-num_hidden_teacher = 1200
-num_hidden_student = 800
 num_hidden_disc = 100
 num_labels_disc = 2
-# num_epochs_teacher = 3
-num_epochs_student = 5
-T = 10
-prob = 1
+num_epochs_disc = 5
 
-alpha = 10
-beta = 0.001
 
 # def make_student_graph_KD():
 graph_discriminator = tf.Graph()
@@ -225,7 +197,7 @@ with graph_discriminator.as_default():
   tf.nn.softmax_cross_entropy_with_logits(labels=tf_train_labels, logits=logits_disc)) 
 
   '''Optimizer'''  
-  optimizer_disc = tf.train.GradientDescentOptimizer(learning_rate=0.001).minimize(loss_disc)
+  optimizer_disc = tf.train.GradientDescentOptimizer(learning_rate=0.0001).minimize(loss_disc)
   
   '''Predictions for the training, validation, and test data'''
   prediction_disc = tf.nn.softmax(logits_disc)
@@ -241,18 +213,9 @@ def train_discriminator():
     with tf.Session(graph=graph_discriminator) as session:
       tf.global_variables_initializer().run()
       
-      # saver = tf.train.Saver(var_list=disc_parameters)
-      # saver.restore(session, export_dir_teacher + model_name_save_teacher)
+      saver = tf.train.Saver(var_list=disc_parameters)
+      saver.restore(session, export_dir + model_name_save_disc)
 
-      
+      Train_Disc(session)
 
-
-
-
-
-
-  
-    
-
-
-  
+train_discriminator()

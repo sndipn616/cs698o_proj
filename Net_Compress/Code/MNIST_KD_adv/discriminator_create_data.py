@@ -237,7 +237,7 @@ def Create_Data(session):
   disc_data, disc_label = zip(*temp)
 
   disc_data = np.array(disc_data)
-  disc_label = np.array(disc_label,dtype=np.int8)
+  disc_label = np.array(disc_label)
 
   disc_train_data = disc_data[:train_disc_size]
   disc_train_label = disc_label[:train_disc_size]
@@ -252,10 +252,17 @@ def Create_Data(session):
   print (disc_test_data.shape)
   print (disc_test_label.shape)
 
-  np.savetxt(fname=dir_disc_data + 'disc_train_x.txt',X=disc_train_data,delimiter=',')
-  np.savetxt(fname=dir_disc_data + 'disc_train_y.txt',X=disc_train_label,delimiter=',')
-  np.savetxt(fname=dir_disc_data + 'disc_test_x.txt',X=disc_test_data,delimiter=',')
-  np.savetxt(fname=dir_disc_data + 'disc_test_y.txt',X=disc_test_label,delimiter=',')
+  disc_train_data = np.concatenate((disc_train_data, disc_train_label),axis=1)
+  disc_test_data = np.concatenate((disc_test_data, disc_test_label),axis=1)
+  
+  # print (disc_train_data.shape)
+  # print (disc_train_data[0])
+  np.savetxt(fname=dir_disc_data + 'disc_train.txt',X=disc_train_data,delimiter=',')
+  np.savetxt(fname=dir_disc_data + 'disc_test.txt',X=disc_test_data,delimiter=',')
+
+  # np.savetxt(fname=dir_disc_data + 'disc_train_y.txt',X=disc_train_label,delimiter=',')
+  # np.savetxt(fname=dir_disc_data + 'disc_test.txt',X=disc_test_data,delimiter=',')
+  # np.savetxt(fname=dir_disc_data + 'disc_test_y.txt',X=disc_test_label,delimiter=',')
         
 
 batch_size = 100
