@@ -1,6 +1,7 @@
 from __future__ import print_function
 import os
 import gzip
+import random
 import numpy as np
 from struct import unpack
 # from skimage.feature import hog
@@ -16,6 +17,7 @@ current_device = '/cpu:0'
 export_dir_teacher = 'MNIST_Model_Teacher/'
 export_dir_student = 'MNIST_Model_Student/'
 export_dir = 'Disc_Model/'
+dir_disc_data = 'Disc_data/'
 temp_dir = 'MNIST_Model_Student/'
 # model_saver = tf.saved_model.builder.SavedModelBuilder(export_dir)
 
@@ -229,16 +231,37 @@ def Create_Data(session):
   images.close()
   labels.close()
 
+  temp = list(zip(disc_data, disc_label))
+  random.shuffle(temp)
+
+  disc_data, disc_label = zip(*temp)
+
   disc_data = np.array(disc_data)
   disc_label = np.array(disc_label)
 
+  disc_train_data = disc_data[:train_disc_size]
+  disc_train_label = disc_label[:train_disc_size]
+
+  disc_test_data = disc_data[train_disc_size:disc_data.shape[0]]
+  disc_test_label = disc_label[train_disc_size:disc_data.shape[0]]
+
   print (disc_data.shape)
   print (disc_label.shape)
+  print (disc_train_data.shape)
+  print (disc_train_label.shape)
+  print (disc_test_data.shape)
+  print (disc_test_label.shape)
+
+  np.savetxt(fname=dir_disc_data + 'disc_train_x.txt',X=disc_train_data,delimiter=',')
+  np.savetxt(fname=dir_disc_data + 'disc_train_y.txt',X=disc_train_label,delimiter=',')
+  np.savetxt(fname=dir_disc_data + 'disc_test_x.txt',X=disc_test_data,delimiter=',')
+  np.savetxt(fname=dir_disc_data + 'disc_test_y.txt',X=disc_test_label,delimiter=',')
         
 
 batch_size = 100
 patch_size = 3
 depth = 32
+train_disc_size = 90000
 num_hidden_teacher = 1200
 num_hidden_student = 800
 num_hidden_disc = 100
