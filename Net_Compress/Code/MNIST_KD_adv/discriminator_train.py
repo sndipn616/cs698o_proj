@@ -152,8 +152,8 @@ def Train_Disc(session):
 batch_size = 100
 num_hidden_disc = 100
 num_labels_disc = 2
-num_epochs_disc = 5
-
+num_epochs_disc = 10
+beta = 0.01
 
 # def make_student_graph_KD():
 graph_discriminator = tf.Graph()
@@ -194,16 +194,14 @@ with graph_discriminator.as_default():
   logits_disc = discriminator_model(tf_train_dataset)
 
   loss_disc = tf.reduce_mean(
-  tf.nn.softmax_cross_entropy_with_logits(labels=tf_train_labels, logits=logits_disc)) 
+  tf.nn.softmax_cross_entropy_with_logits(labels=tf_train_labels, logits=logits_disc)) \
+   + beta*(tf.nn.l2_loss(layer1_weights_disc) + tf.nn.l2_loss(layer2_weights_disc) + tf.nn.l2_loss(layer3_weights_disc))
 
   '''Optimizer'''  
   optimizer_disc = tf.train.GradientDescentOptimizer(learning_rate=0.0001).minimize(loss_disc)
   
   '''Predictions for the training, validation, and test data'''
-  prediction_disc = tf.nn.softmax(logits_disc)
-  
-
-  
+  prediction_disc = tf.nn.softmax(logits_disc)  
 
 
 def train_discriminator():
@@ -213,9 +211,12 @@ def train_discriminator():
     with tf.Session(graph=graph_discriminator) as session:
       tf.global_variables_initializer().run()
       
-      saver = tf.train.Saver(var_list=disc_parameters)
-      saver.restore(session, export_dir + model_name_save_disc)
+      try:
+        saver = tf.train.Saver(var_list=disc_parameters)
+        saver.restore(session, export_dir + model_name_save_disc)
+        Train_Disc(session)
 
-      Train_Disc(session)
+      except:
+        Train_Disc(session)
 
 train_discriminator()
