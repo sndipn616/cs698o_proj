@@ -381,7 +381,7 @@ def train_student_KD():
       Train_Student(session)
 
 
-# train_student_KD()
+train_student_KD()
 
 
 
