@@ -237,7 +237,7 @@ def Create_Data(session):
   disc_data, disc_label = zip(*temp)
 
   disc_data = np.array(disc_data)
-  disc_label = np.array(disc_label)
+  disc_label = np.array(disc_label,dtype=np.int8)
 
   disc_train_data = disc_data[:train_disc_size]
   disc_train_label = disc_label[:train_disc_size]
@@ -275,9 +275,9 @@ alpha = 10
 beta = 0.001
 
 # def make_student_graph_KD():
-graph_discriminator = tf.Graph()
+graph_create_data = tf.Graph()
 
-with graph_discriminator.as_default():
+with graph_create_data.as_default():
   '''Input data'''
   tf_train_dataset = tf.placeholder(tf.float32, shape=(batch_size, image_size * image_size * num_channels), name='x')
   tf_train_labels = tf.placeholder(tf.float32, shape=(batch_size, num_labels), name='y')
@@ -362,7 +362,7 @@ def create_disc_data():
   with tf.device(current_device):
     # graph_discriminator = make_student_graph_KD()
 
-    with tf.Session(graph=graph_discriminator) as session:
+    with tf.Session(graph=graph_create_data) as session:
       tf.global_variables_initializer().run()
       
       saver = tf.train.Saver(var_list=teacher_parameters)
