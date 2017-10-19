@@ -249,7 +249,7 @@ with graph_student.as_default():
   student_parameters = [layer1_weights_student, layer1_biases_student, layer2_weights_student, layer2_biases_student, layer3_weights_student, layer3_biases_student]
 
   def student_model(data):
-    out = tf.matmul(tf_train_dataset, layer1_weights_student) + layer1_biases_student
+    out = tf.matmul(data, layer1_weights_student) + layer1_biases_student
     out = tf.nn.relu(out)
 
     out = tf.matmul(out, layer2_weights_student) + layer2_biases_student

@@ -252,7 +252,7 @@ with graph_teacher.as_default():
   # data = tf_train_dataset
   '''Teacher Model for Training'''
   def teacher_model_train(data):
-    out = tf.matmul(tf_train_dataset, layer1_weights_teacher) + layer1_biases_teacher
+    out = tf.matmul(data, layer1_weights_teacher) + layer1_biases_teacher
     out = tf.nn.dropout(tf.nn.relu(out), prob)
 
     out = tf.matmul(out, layer2_weights_teacher) + layer2_biases_teacher
@@ -263,7 +263,7 @@ with graph_teacher.as_default():
     return out
 
   def teacher_model_eval(data):
-    out = tf.matmul(tf_train_dataset, layer1_weights_teacher) + layer1_biases_teacher
+    out = tf.matmul(data, layer1_weights_teacher) + layer1_biases_teacher
     out = tf.nn.relu(out)
 
     out = tf.matmul(out, layer2_weights_teacher) + layer2_biases_teacher
