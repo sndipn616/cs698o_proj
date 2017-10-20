@@ -246,7 +246,7 @@ num_epochs_student = 5
 T = 15
 prob = 1
 
-alpha = 15
+alpha = 10
 beta = 0.001
 
 # def make_student_graph_KD():
