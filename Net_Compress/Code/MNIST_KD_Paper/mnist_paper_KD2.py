@@ -228,8 +228,8 @@ def Train_Student(session):
     labels.close()
         
 
-  model_saver = tf.train.Saver(var_list=student_parameters)
-  model_saver.save(session, export_dir + model_name_save_student + str(alpha) + '_' + str(T), write_meta_graph=True)
+  # model_saver = tf.train.Saver(var_list=student_parameters)
+  # model_saver.save(session, export_dir + model_name_save_student + str(alpha) + '_' + str(T), write_meta_graph=True)
 
   acc, w = test_accuracy(session, teacher=False)
   print('Student : alpha = %f, T = %d, Number of wrong classificiation: %d Test accuracy: %.1f%%' % (alpha, T, w, acc))
