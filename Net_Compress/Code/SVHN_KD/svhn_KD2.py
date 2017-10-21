@@ -243,10 +243,10 @@ num_hidden_teacher = 4096
 num_hidden_student = 3072
 # num_epochs_teacher = 3
 num_epochs_student = 5
-T = 15
+T = 10
 prob = 1
 
-alpha = 10
+alpha = 15
 # beta = 0.001
 
 # def make_student_graph_KD():
@@ -397,9 +397,9 @@ def train_student_KD():
       except Exception as e:
         pass      
 
-      print ("Testing Teacher for sanity check")
-      acc, w = test_accuracy(session)
-      print('Teacher : Number of wrong classificiation: %d Test accuracy: %.1f%%' % (w, acc))
+      # print ("Testing Teacher for sanity check")
+      # acc, w = test_accuracy(session)
+      # print('Teacher : Number of wrong classificiation: %d Test accuracy: %.1f%%' % (w, acc))
 
       Train_Student(session)
 

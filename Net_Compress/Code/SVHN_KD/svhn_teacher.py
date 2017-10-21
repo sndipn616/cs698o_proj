@@ -216,7 +216,7 @@ def Train_Teacher(session):
 batch_size = 100
 prob = 1
 num_hidden = 4096
-num_epochs = 5
+num_epochs = 15
 beta = 0
 
 

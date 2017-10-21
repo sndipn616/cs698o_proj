@@ -216,7 +216,7 @@ def Train_Student(session):
 batch_size = 100
 patch_size = 3
 num_hidden = 3072
-num_epochs = 5
+num_epochs = 15
 beta = 0
 
 # def make_student_graph():
