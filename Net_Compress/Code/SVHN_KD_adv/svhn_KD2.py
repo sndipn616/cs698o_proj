@@ -258,7 +258,7 @@ num_epochs_student = 5
 T = 10
 
 alpha = 1
-beta = 1
+beta = 0.5
 
 # def make_student_graph_KD():
 graph_student_KD = tf.Graph()
