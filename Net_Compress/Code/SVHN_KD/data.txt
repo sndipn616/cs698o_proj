@@ -1,0 +1,9 @@
+SVHN
+Teacher : Number of wrong classificiation: 8339 Test accuracy: 67.9%
+Student : Number of wrong classificiation: 9224 Test accuracy: 64.5%
+Student(KD) - 
+Student : alpha = 0.000000, T = 10, Number of wrong classificiation: 9101 Test accuracy: 65.0%
+Student : alpha = 10.000000, T = 10, Number of wrong classificiation: 9014 Test accuracy: 65.3%
+Student : alpha = 15.000000, T = 10, Number of wrong classificiation: 9186 Test accuracy: 64.7%
+Student : alpha = 10.000000, T = 15, Number of wrong classificiation: 9369 Test accuracy: 64.0%
+Student : alpha = 10.000000, T = 5, Number of wrong classificiation: 9650 Test accuracy: 62.9%
