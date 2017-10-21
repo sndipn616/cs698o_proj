@@ -1,0 +1,7 @@
+notMNIST
+Teacher : Number of wrong classificiation: 1200 Test accuracy: 88.0%
+Student : Number of wrong classificiation: 1398 Test accuracy: 86.0%
+Student(KD) - 
+Student : alpha = 5.000000, beta = 1.000000, T = 10, Number of wrong classificiation: 1841 Test accuracy: 81.6%
+Student : alpha = 1.000000, beta = 1.000000, T = 10, Number of wrong classificiation: 1089 Test accuracy: 89.1%
+Student : alpha = 1.000000, beta = 2.000000, T = 10, Number of wrong classificiation: 1387 Test accuracy: 86.1%
