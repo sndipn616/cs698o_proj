@@ -3,7 +3,7 @@ import os
 import gzip
 import numpy as np
 from struct import unpack
-# from skimage.feature import hog
+from skimage.feature import hog
 # from skimage import data, color
 from numpy import zeros, uint8
 import tensorflow as tf
@@ -123,7 +123,7 @@ def test_accuracy(session):
         # print (pixelValue)
         CurrImage[row][col] = pixelValue * 1.0
         
-        
+    # _, CurrImage = hog(CurrImage, orientations=8, pixels_per_cell=(16, 16), cells_per_block=(1, 1), visualise=True)    
     batch_data.append(CurrImage)
     # print (CurrImage)
     labelValue = testLabels.read(1)      
@@ -173,7 +173,7 @@ def Train_Teacher(session):
           # print (pixelValue)
           CurrImage[row][col] = pixelValue * 1.0
           
-          
+      # _, CurrImage = hog(CurrImage, orientations=8, pixels_per_cell=(16, 16), cells_per_block=(1, 1), visualise=True)
       batch_data.append(CurrImage)
       # print (CurrImage)
       labelValue = labels.read(1)      
@@ -198,7 +198,7 @@ def Train_Teacher(session):
         _, l, predictions = session.run([optimizer_teacher, loss_teacher, prediction_teacher_train], feed_dict=feed_dict)
 
         if minibatch_num % 100 == 0:
-          print('Epoch : [%d/%d], Minibatch loss at step %d: %f' % (epoch, num_epochs, minibatch_num, l))          
+          print('Epoch : [%d/%d], Minibatch loss at step %d: %f' % (epoch+1, num_epochs, minibatch_num, l))          
           print('Minibatch accuracy: %.1f%%' % accuracy(predictions, new_batch_labels))
 
     images.close()
@@ -215,9 +215,9 @@ def Train_Teacher(session):
 
 batch_size = 100
 prob = 1
-num_hidden = 1600
-num_epochs = 15
-beta = 0.001
+num_hidden = 4096
+num_epochs = 5
+beta = 0
 
 
 # def make_teacher_graph():
@@ -242,15 +242,22 @@ with graph_teacher.as_default():
   layer2_weights_teacher = tf.Variable(tf.truncated_normal([num_hidden, num_hidden], stddev=0.1), name='l2wt')
   layer2_biases_teacher = tf.Variable(tf.constant(1.0, shape=[num_hidden]), name='l2bt')
 
-  # Hidden2 to Hidden3 Layer
-  layer3_weights_teacher = tf.Variable(tf.truncated_normal([num_hidden, num_hidden], stddev=0.1), name='l3wt')
-  layer3_biases_teacher = tf.Variable(tf.constant(1.0, shape=[num_hidden]), name='l3bt')
+  # Hidden2 to Output Layer
+  layer3_weights_teacher = tf.Variable(tf.truncated_normal([num_hidden, num_labels], stddev=0.1), name='l3wt')
+  layer3_biases_teacher = tf.Variable(tf.constant(1.0, shape=[num_labels]), name='l3bt')
 
+
+  # # Hidden2 to Hidden3 Layer
+  # layer3_weights_teacher = tf.Variable(tf.truncated_normal([num_hidden, num_hidden], stddev=0.1), name='l3wt')
+  # layer3_biases_teacher = tf.Variable(tf.constant(1.0, shape=[num_hidden]), name='l3bt')
+
+  
   # Hidden3 to Output Layer
-  layer4_weights_teacher = tf.Variable(tf.truncated_normal([num_hidden, num_labels], stddev=0.1), name='l4wt')
-  layer4_biases_teacher = tf.Variable(tf.constant(1.0, shape=[num_labels]), name='l4bt')
+  # layer4_weights_teacher = tf.Variable(tf.truncated_normal([num_hidden, num_labels], stddev=0.1), name='l4wt')
+  # layer4_biases_teacher = tf.Variable(tf.constant(1.0, shape=[num_labels]), name='l4bt')
 
-  teacher_parameters = [layer1_weights_teacher, layer1_biases_teacher, layer2_weights_teacher, layer2_biases_teacher, layer3_weights_teacher, layer3_biases_teacher, layer4_weights_teacher, layer4_biases_teacher]
+  # teacher_parameters = [layer1_weights_teacher, layer1_biases_teacher, layer2_weights_teacher, layer2_biases_teacher, layer3_weights_teacher, layer3_biases_teacher, layer4_weights_teacher, layer4_biases_teacher]
+  teacher_parameters = [layer1_weights_teacher, layer1_biases_teacher, layer2_weights_teacher, layer2_biases_teacher, layer3_weights_teacher, layer3_biases_teacher]
 
   # data = tf_train_dataset
   '''Teacher Model for Training'''
@@ -262,9 +269,9 @@ with graph_teacher.as_default():
     out = tf.nn.dropout(tf.nn.relu(out), prob)
 
     out = tf.matmul(out, layer3_weights_teacher) + layer3_biases_teacher
-    out = tf.nn.dropout(tf.nn.relu(out), prob)
+    # out = tf.nn.dropout(tf.nn.relu(out), prob)
 
-    out = tf.matmul(out, layer4_weights_teacher) + layer4_biases_teacher
+    # out = tf.matmul(out, layer4_weights_teacher) + layer4_biases_teacher
 
     return out
 
@@ -276,9 +283,9 @@ with graph_teacher.as_default():
     out = tf.nn.relu(out)
 
     out = tf.matmul(out, layer3_weights_teacher) + layer3_biases_teacher
-    out = tf.nn.relu(out)
+    # out = tf.nn.relu(out)
 
-    out = tf.matmul(out, layer4_weights_teacher) + layer4_biases_teacher
+    # out = tf.matmul(out, layer4_weights_teacher) + layer4_biases_teacher
 
     return out
      
