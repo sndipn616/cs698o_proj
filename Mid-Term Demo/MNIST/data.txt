@@ -14,3 +14,10 @@ Student : alpha = 10.000000, T = 10, Number of wrong classificiation: 583 Test a
 Student : alpha = 15.000000, T = 10, Number of wrong classificiation: 589 Test accuracy: 94.1%
 Student : alpha = 10.000000, T = 5, Number of wrong classificiation: 593 Test accuracy: 94.1%
 Student : alpha = 10.000000, T = 12, Number of wrong classificiation: 586 Test accuracy: 94.1%
+
+Adv - 
+Student : alpha = 1.000000, beta = 0.000000, T = 10, Number of wrong classificiation: 565 Test accuracy: 94.3%
+Student : alpha = 1.000000, beta = 0.500000, T = 10, Number of wrong classificiation: 557 Test accuracy: 94.4%
+Student : alpha = 5.000000, beta = 1.000000, T = 10, Number of wrong classificiation: 411 Test accuracy: 95.9%
+Student : alpha = 10.000000, beta = 1.000000, T = 10, Number of wrong classificiation: 375 Test accuracy: 96.2%
+Student : alpha = 15.000000, beta = 1.000000, T = 10, Number of wrong classificiation: 474 Test accuracy: 95.3%
