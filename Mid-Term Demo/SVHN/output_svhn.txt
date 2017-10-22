@@ -1,0 +1,20 @@
+Initialized
+Testing Accuracy
+Time taken to execute : 32.6300888062 seconds
+Teacher : Number of wrong classificiation: 8339 Test accuracy: 67.9%
+Initialized
+Testing Accuracy
+Time taken to execute : 28.3485999107 seconds
+Student : Number of wrong classificiation: 9224 Test accuracy: 64.5%
+Initialized
+Testing Accuracy
+Time taken to execute : 28.4193339348 seconds
+Student : Number of wrong classificiation: 9101 Test accuracy: 65.0%
+Initialized
+Testing Accuracy
+Time taken to execute : 28.0555419922 seconds
+Student : Number of wrong classificiation: 9014 Test accuracy: 65.3%
+Initialized
+Testing Accuracy
+Time taken to execute : 28.0055069923 seconds
+Student : Number of wrong classificiation: 8659 Test accuracy: 66.7%
