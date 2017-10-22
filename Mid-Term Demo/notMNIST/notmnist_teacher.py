@@ -264,7 +264,7 @@ def test_teacher(model_name_save_teacher):
       start_time = time.time()
       acc, w = test_accuracy(session)
       print("Time taken to execute : %s seconds" % (time.time() - start_time))
-      print('Student : Number of wrong classificiation: %d Test accuracy: %.1f%%' % (w, acc)) 
+      print('Teacher : Number of wrong classificiation: %d Test accuracy: %.1f%%' % (w, acc)) 
 
   
     

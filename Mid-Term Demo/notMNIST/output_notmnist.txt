@@ -1,20 +1,20 @@
 Initialized
 Testing Accuracy
-Time taken to execute : 9.04029297829 seconds
-Student : Number of wrong classificiation: 1200 Test accuracy: 88.0%
+Time taken to execute : 9.28796601295 seconds
+Teacher : Number of wrong classificiation: 1200 Test accuracy: 88.0%
 Initialized
 Testing Accuracy
-Time taken to execute : 8.603495121 seconds
+Time taken to execute : 8.7194621563 seconds
 Student : Number of wrong classificiation: 1398 Test accuracy: 86.0%
 Initialized
 Testing Accuracy
-Time taken to execute : 8.63904118538 seconds
+Time taken to execute : 8.76481294632 seconds
 Student : Number of wrong classificiation: 1344 Test accuracy: 86.6%
 Initialized
 Testing Accuracy
-Time taken to execute : 8.64333415031 seconds
+Time taken to execute : 8.69488096237 seconds
 Student : Number of wrong classificiation: 1321 Test accuracy: 86.8%
 Initialized
 Testing Accuracy
-Time taken to execute : 8.63437008858 seconds
+Time taken to execute : 8.73939800262 seconds
 Student : Number of wrong classificiation: 1089 Test accuracy: 89.1%
