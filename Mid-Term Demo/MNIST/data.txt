@@ -1,0 +1,16 @@
+Test Set - 10000 examples
+MNIST
+Teacher : Number of wrong classificiation: 476 Test accuracy: 95.2%
+Student : Number of wrong classificiation: 594 Test accuracy: 94.1%
+Student(KD) - 
+Student : alpha = 0.000000, T = 50, Number of wrong classificiation: 597 Test accuracy: 94.0%
+Student : alpha = 0.500000, T = 50, Number of wrong classificiation: 598 Test accuracy: 94.0%
+Student : alpha = 1.000000, T = 50, Number of wrong classificiation: 604 Test accuracy: 94.0%
+Student : alpha = 2.000000, T = 25, Number of wrong classificiation: 596 Test accuracy: 94.0%
+Student : alpha = 2.500000, T = 20, Number of wrong classificiation: 603 Test accuracy: 94.0%
+Student : alpha = 5.000000, T = 100, Number of wrong classificiation: 615 Test accuracy: 93.8%
+Student : alpha = 5.000000, T = 10, Number of wrong classificiation: 598 Test accuracy: 94.0%
+Student : alpha = 10.000000, T = 10, Number of wrong classificiation: 583 Test accuracy: 94.2%
+Student : alpha = 15.000000, T = 10, Number of wrong classificiation: 589 Test accuracy: 94.1%
+Student : alpha = 10.000000, T = 5, Number of wrong classificiation: 593 Test accuracy: 94.1%
+Student : alpha = 10.000000, T = 12, Number of wrong classificiation: 586 Test accuracy: 94.1%
