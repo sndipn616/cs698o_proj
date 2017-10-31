@@ -315,8 +315,6 @@ with graph_student.as_default():
 
   # return graph_student
 
-
-
 def pre_train_student():
   with tf.device(current_device): 
     # graph_student = make_student_graph() 
