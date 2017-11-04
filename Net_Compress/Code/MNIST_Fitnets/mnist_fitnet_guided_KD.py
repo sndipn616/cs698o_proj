@@ -22,7 +22,8 @@ temp_dir = 'MNIST_Model_Student/'
 model_name = 'mnist_tf_basic'
 model_name_save_teacher = 'mnist_teacher'
 model_name_save_student_trained = 'mnist_student_fitnet'
-model_name_save_student = 'mnist_student_fitnet_guided'
+model_name_save_student = 'mnist_student_fitnet_guided_KD'
+model_name_save_student_guided = 'mnist_student_fitnet_guided'
 model_name_save_regressor = 'mnist_regressor'
 data_dir = 'MNIST_data/'
 
@@ -228,10 +229,10 @@ def Train_Student(session):
     labels.close()
         
 
-  model_saver = tf.train.Saver(var_list=student_first_half_params)
+  model_saver = tf.train.Saver(var_list=student_parameters)
   model_saver.save(session, export_dir + model_name_save_student + str(alpha) + '_' + str(T), write_meta_graph=True)
 
-  model_saver = tf.train.Saver(var_list=[layer_regressor_student])
+  model_saver = tf.train.Saver(var_list=layer_regressor_student)
   model_saver.save(session, export_dir + model_name_save_regressor, write_meta_graph=True)
 
   acc, w = test_accuracy(session, teacher=False)
@@ -251,7 +252,7 @@ num_epochs_student = 10
 T = 10
 prob = 1
 
-alpha = 0
+alpha = 10
 beta = 0.001
 
 # def make_student_graph_KD():
@@ -404,11 +405,17 @@ with graph_student_guided.as_default():
   # logits = tf.matmul(hidden, layersm_weights_teacher) + layersm_biases_teacher
   '''Training computation'''   
   logits_student1, logits_student2 = student_model(tf_train_dataset)
-  regressed_first_half = tf.matmul(logits_student1, layer_regressor_student)
+  logits_student_soft = logits_student2 / T
+
+  prediction_teacher_soft = tf.nn.softmax(logits_teacher_eval2 / T)
   # 1st Half Training
   # loss_student = tf.reduce_mean(tf.nn.l2_loss(logits_teacher_eval1 - regressed_first_half))
-  loss_student = tf.losses.mean_squared_error(labels=logits_teacher_eval1, predictions=regressed_first_half)
-  optimizer_student = tf.train.GradientDescentOptimizer(learning_rate=0.00001).minimize(loss_student, var_list=student_first_half_params)
+  loss_student = tf.reduce_mean(
+  tf.nn.softmax_cross_entropy_with_logits(labels=tf_train_labels, logits=logits_student2)) \
+  + alpha*(tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=prediction_teacher_soft, logits=logits_student_soft)))
+
+
+  optimizer_student = tf.train.GradientDescentOptimizer(learning_rate=0.00001).minimize(loss_student, var_list=student_parameters)
 
   # KD
   # logits_student_soft = logits_student2 / T
@@ -459,15 +466,15 @@ def train_student_KD():
       acc, w = test_accuracy(session, False)
       print('Student : Number of wrong classificiation: %d Test accuracy: %.1f%%' % (w, acc))
 
+      saver = tf.train.Saver(var_list=student_first_half_params)
+      saver.restore(session, export_dir + model_name_save_student_guided)
+
+      print ("Testing Student for sanity check")
+      acc, w = test_accuracy(session, False)
+      print('Student : Number of wrong classificiation: %d Test accuracy: %.1f%%' % (w, acc))
+
       Train_Student(session)
 
 
 train_student_KD()
 
-
-
-  
-    
-
-
-  
