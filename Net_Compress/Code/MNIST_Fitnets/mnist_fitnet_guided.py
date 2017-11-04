@@ -12,7 +12,7 @@ from six.moves import range
 from tensorflow.examples.tutorials.mnist import input_data
 
 # mnist = input_data.read_data_sets("MNIST_data/", validation_size=10000, one_hot=True)
-current_device = '/cpu:0'
+current_device = '/gpu:2'
 export_dir_teacher = 'MNIST_Model_Teacher/'
 export_dir_student = 'MNIST_Model_Student/'
 export_dir = 'MNIST_Model_Student_KD/'
@@ -246,12 +246,8 @@ depth_teacher = 64
 depth_student = 16
 num_hidden_teacher = 1200
 num_hidden_student = 200
-out_dim = 100
-
 # num_epochs_teacher = 3
-num_epochs_student = 5
-
-
+num_epochs_student = 10
 T = 10
 prob = 1
 
@@ -285,9 +281,6 @@ with graph_student_guided.as_default():
   final_image_size_teacher = 7
   layer3_weights_teacher = tf.Variable(tf.truncated_normal([final_image_size_teacher * final_image_size_teacher * depth_teacher, num_hidden_teacher], stddev=0.1), name='l3wt')
   layer3_biases_teacher = tf.Variable(tf.constant(1.0, shape=[num_hidden_teacher]), name='l3bt')
-
-  # Conv2 to Regressor
-  layer_regressor_teacher = tf.Variable(tf.truncated_normal([final_image_size_teacher * final_image_size_teacher * depth_teacher, out_dim], stddev=0.1), name='lrt')
 
   # FC1 to FC2 Layer
   layer4_weights_teacher = tf.Variable(tf.truncated_normal([num_hidden_teacher, num_labels], stddev=0.1), name='l4wt')
@@ -361,7 +354,7 @@ with graph_student_guided.as_default():
 
   # Conv3 to Regressor
   final_image_size_student = 4
-  layer_regressor_student = tf.Variable(tf.truncated_normal([final_image_size_student * final_image_size_student * depth_student, out_dim], stddev=0.1), name='lrs')
+  layer_regressor_student = tf.Variable(tf.truncated_normal([final_image_size_student * final_image_size_student * depth_student, final_image_size_teacher * final_image_size_teacher * depth_teacher], stddev=0.1), name='lrs')
 
   # Conv3 to FC1 Layer  
   layer4_weights_student = tf.Variable(tf.truncated_normal([final_image_size_student * final_image_size_student * depth_student, num_hidden_student], stddev=0.1), name='l4ws')
@@ -411,14 +404,11 @@ with graph_student_guided.as_default():
   # logits = tf.matmul(hidden, layersm_weights_teacher) + layersm_biases_teacher
   '''Training computation'''   
   logits_student1, logits_student2 = student_model(tf_train_dataset)
-  regressed_first_half_student = tf.matmul(logits_student1, layer_regressor_student)
-  regressed_first_half_teacher = tf.matmul(logits_teacher_eval1, layer_regressor_teacher)
-
+  regressed_first_half = tf.matmul(logits_student1, layer_regressor_student)
   # 1st Half Training
-  loss_student = tf.reduce_mean(tf.nn.l2_loss(regressed_first_half_teacher - regressed_first_half_student))
-  # loss_student = tf.reduce_mean(tf.nn.l2_loss(tf.subtract(logits_teacher_eval1, regressed_first_half)))
-  
-  optimizer_student = tf.train.GradientDescentOptimizer(learning_rate=0.000001).minimize(loss_student, var_list=student_first_half_params)
+  # loss_student = tf.reduce_mean(tf.nn.l2_loss(logits_teacher_eval1 - regressed_first_half))
+  loss_student = tf.losses.mean_squared_error(labels=logits_teacher_eval1, predictions=regressed_first_half)
+  optimizer_student = tf.train.GradientDescentOptimizer(learning_rate=0.00001).minimize(loss_student, var_list=student_first_half_params)
 
   # KD
   # logits_student_soft = logits_student2 / T
@@ -455,22 +445,19 @@ def train_student_KD():
       saver.restore(session, export_dir_student + model_name_save_student_trained)
 
       try:
-        saver = tf.train.Saver(var_list=[layer_regressor_student, layer_regressor_teacher])
-        saver.restore(session, export_dir + model_name_save_regressor)
-
-        saver = tf.train.Saver(var_list=[layer_regressor_teacher, layer_regressor_teacher])
+        saver = tf.train.Saver(var_list=[layer_regressor_student])
         saver.restore(session, export_dir + model_name_save_regressor)
 
       except:
         pass
 
-      print ("Testing Teacher for sanity check")
-      acc, w = test_accuracy(session)
-      print('Teacher : Number of wrong classificiation: %d Test accuracy: %.1f%%' % (w, acc))
+      # print ("Testing Teacher for sanity check")
+      # acc, w = test_accuracy(session)
+      # print('Teacher : Number of wrong classificiation: %d Test accuracy: %.1f%%' % (w, acc))
 
-      print ("Testing Student for sanity check")
-      acc, w = test_accuracy(session, False)
-      print('Student : Number of wrong classificiation: %d Test accuracy: %.1f%%' % (w, acc))
+      # print ("Testing Student for sanity check")
+      # acc, w = test_accuracy(session, False)
+      # print('Student : Number of wrong classificiation: %d Test accuracy: %.1f%%' % (w, acc))
 
       Train_Student(session)
 
