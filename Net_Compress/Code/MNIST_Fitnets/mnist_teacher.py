@@ -246,6 +246,7 @@ with graph_teacher.as_default():
   layer2_weights_teacher = tf.Variable(tf.truncated_normal([patch_size, patch_size, depth, depth], stddev=0.1), name='l2wt')
   layer2_biases_teacher = tf.Variable(tf.zeros([depth]), name='l2bt')
   
+  teacher_first_half_params = [layer1_weights_teacher, layer1_biases_teacher, layer2_weights_teacher, layer2_biases_teacher]
   # Conv2 to FC1 Layer
   final_image_size = 7
   layer3_weights_teacher = tf.Variable(tf.truncated_normal([final_image_size * final_image_size * depth, num_hidden], stddev=0.1), name='l3wt')
@@ -255,6 +256,7 @@ with graph_teacher.as_default():
   layer4_weights_teacher = tf.Variable(tf.truncated_normal([num_hidden, num_labels], stddev=0.1), name='l4wt')
   layer4_biases_teacher = tf.Variable(tf.constant(1.0, shape=[num_labels]), name='l4bt')
 
+  teacher_second_half_params = [layer3_weights_teacher, layer3_biases_teacher, layer4_weights_teacher, layer4_biases_teacher]
 
   teacher_parameters = [layer1_weights_teacher, layer1_biases_teacher, layer2_weights_teacher, layer2_biases_teacher, layer3_weights_teacher, layer3_biases_teacher, layer4_weights_teacher, layer4_biases_teacher]
   # data = tf_train_dataset
@@ -312,7 +314,7 @@ with graph_teacher.as_default():
 
   '''Optimizer'''
   # Learning rate of 0.05
-  optimizer_teacher = tf.train.GradientDescentOptimizer(learning_rate=0.000001).minimize(loss_teacher)
+  optimizer_teacher = tf.train.GradientDescentOptimizer(learning_rate=0.0001).minimize(loss_teacher)
   # optimizer_teacher = tf.train.AdamOptimizer(learning_rate=0.00001).minimize(loss_teacher) 
 
   '''Predictions for the training, validation, and test data'''
