@@ -314,7 +314,7 @@ with graph_teacher.as_default():
 
   '''Optimizer'''
   # Learning rate of 0.05
-  optimizer_teacher = tf.train.GradientDescentOptimizer(learning_rate=0.0001).minimize(loss_teacher)
+  optimizer_teacher = tf.train.GradientDescentOptimizer(learning_rate=0.00001).minimize(loss_teacher)
   # optimizer_teacher = tf.train.AdamOptimizer(learning_rate=0.00001).minimize(loss_teacher) 
 
   '''Predictions for the training, validation, and test data'''
