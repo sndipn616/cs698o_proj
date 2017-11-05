@@ -229,7 +229,7 @@ def Train_Student(session):
         
 
   model_saver = tf.train.Saver(var_list=student_first_half_params)
-  model_saver.save(session, export_dir + model_name_save_student + str(alpha) + '_' + str(T), write_meta_graph=True)
+  model_saver.save(session, export_dir + model_name_save_student, write_meta_graph=True)
 
   model_saver = tf.train.Saver(var_list=[layer_regressor_student])
   model_saver.save(session, export_dir + model_name_save_regressor, write_meta_graph=True)

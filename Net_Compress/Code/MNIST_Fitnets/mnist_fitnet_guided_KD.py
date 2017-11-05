@@ -179,7 +179,7 @@ def test_accuracy(session,teacher=True):
   return 100.0 * correct / total, wrong
 
 
-def Train_Student(session):
+def Train_Student(session, flag):
   for epoch in range(num_epochs_student):
     batch_data = []
     batch_labels = []
@@ -230,9 +230,9 @@ def Train_Student(session):
         
 
   model_saver = tf.train.Saver(var_list=student_parameters)
-  model_saver.save(session, export_dir + model_name_save_student + str(alpha) + '_' + str(T), write_meta_graph=True)
+  model_saver.save(session, export_dir + str(flag) + model_name_save_student + str(alpha) + '_' + str(T), write_meta_graph=True)
 
-  model_saver = tf.train.Saver(var_list=layer_regressor_student)
+  model_saver = tf.train.Saver(var_list=[layer_regressor_student])
   model_saver.save(session, export_dir + model_name_save_regressor, write_meta_graph=True)
 
   acc, w = test_accuracy(session, teacher=False)
@@ -248,7 +248,7 @@ depth_student = 16
 num_hidden_teacher = 1200
 num_hidden_student = 200
 # num_epochs_teacher = 3
-num_epochs_student = 10
+num_epochs_student = 25
 T = 10
 prob = 1
 
@@ -438,7 +438,8 @@ with graph_student_guided.as_default():
   # tf.add_to_collection("student_model_prediction", prediction_student)
 
 
-def train_student_KD():
+def train_student_KD(flag=1):
+
   with tf.device(current_device):
     # graph_student_guided = make_student_graph_KD()
 
@@ -458,6 +459,7 @@ def train_student_KD():
       except:
         pass
 
+      print ("flag : %d " %(flag))
       print ("Testing Teacher for sanity check")
       acc, w = test_accuracy(session)
       print('Teacher : Number of wrong classificiation: %d Test accuracy: %.1f%%' % (w, acc))
@@ -466,15 +468,16 @@ def train_student_KD():
       acc, w = test_accuracy(session, False)
       print('Student : Number of wrong classificiation: %d Test accuracy: %.1f%%' % (w, acc))
 
-      saver = tf.train.Saver(var_list=student_first_half_params)
-      saver.restore(session, export_dir + model_name_save_student_guided)
+      if flag == 2:
+        saver = tf.train.Saver(var_list=student_first_half_params)
+        saver.restore(session, export_dir + model_name_save_student_guided)
 
-      print ("Testing Student for sanity check")
-      acc, w = test_accuracy(session, False)
-      print('Student : Number of wrong classificiation: %d Test accuracy: %.1f%%' % (w, acc))
+        print ("Testing Student for sanity check")
+        acc, w = test_accuracy(session, False)
+        print('Student : Number of wrong classificiation: %d Test accuracy: %.1f%%' % (w, acc))
 
-      Train_Student(session)
+      Train_Student(session, flag)
 
 
-train_student_KD()
+train_student_KD(1)
 
