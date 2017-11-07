@@ -11,8 +11,15 @@ from six.moves import cPickle as pickle
 from six.moves import range
 from tensorflow.examples.tutorials.mnist import input_data
 
-# mnist = input_data.read_data_sets("MNIST_data/", validation_size=10000, one_hot=True)
-current_device = '/cpu:0'
+gpu_num = 1
+
+os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
+os.environ["CUDA_VISIBLE_DEVICES"]=str(gpu_num)
+
+config = tf.ConfigProto()
+config.gpu_options.per_process_gpu_memory_fraction = 0.4
+
+current_device = '/gpu:' + str(gpu_num)
 export_dir = 'MNIST_Model_Student/'
 temp_dir = 'MNIST_Models/'
 # model_saver = tf.saved_model.builder.SavedModelBuilder(export_dir)
@@ -209,11 +216,13 @@ def Train_Student(session):
   model_saver.save(session, export_dir + model_name_save_student, write_meta_graph=True)
 
   acc, w = test_accuracy(session)
-  print('Student : Number of wrong classificiation: %d Test accuracy: %.1f%%' % (w, acc))
+  print('Student : Total Iteration %d, Number of wrong classificiation: %d Test accuracy: %.1f%%' % (num_epochs, w, acc))
+  with open("output.txt", "a") as myfile:
+    myfile.write('Student : Total Iteration %d, Number of wrong classificiation: %d Test accuracy: %.1f%%' % (num_epochs, w, acc))
 
 
 
-batch_size = 100
+batch_size = 500
 patch_size = 3
 depth = 16
 
@@ -221,7 +230,7 @@ depth = 16
 prob = 0.5
 num_hidden = 200
 
-num_epochs = 5
+num_epochs = 20
 beta = 0.001
 
 graph_student = tf.Graph()
@@ -321,7 +330,7 @@ with graph_student.as_default():
 def pre_train_student():
   with tf.device(current_device): 
     # graph_student = make_student_graph() 
-    with tf.Session(graph=graph_student) as session:
+    with tf.Session(graph=graph_student, config=config) as session:
       tf.global_variables_initializer().run()
       print('Initialized')
       if os.path.isfile(export_dir + model_name_save_student + '.meta'):
@@ -330,7 +339,7 @@ def pre_train_student():
 
       Train_Student(session)  
 
-pre_train_student()   
+# pre_train_student()   
 
 
   

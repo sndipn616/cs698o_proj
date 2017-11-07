@@ -11,8 +11,16 @@ from six.moves import cPickle as pickle
 from six.moves import range
 from tensorflow.examples.tutorials.mnist import input_data
 
+gpu_num = 2
+
+os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
+os.environ["CUDA_VISIBLE_DEVICES"]=str(gpu_num)
+
+config = tf.ConfigProto()
+config.gpu_options.per_process_gpu_memory_fraction = 0.4
+
 # mnist = input_data.read_data_sets("MNIST_data/", validation_size=10000, one_hot=True)
-current_device = '/gpu:2'
+current_device = '/gpu:' + str(gpu_num)
 export_dir_teacher = 'MNIST_Model_Teacher/'
 export_dir_student = 'MNIST_Model_Student/'
 export_dir = 'MNIST_Model_Student_KD/'
@@ -235,11 +243,13 @@ def Train_Student(session):
   model_saver.save(session, export_dir + model_name_save_regressor, write_meta_graph=True)
 
   acc, w = test_accuracy(session, teacher=False)
-  print('Student : alpha = %f, T = %d, Number of wrong classificiation: %d Test accuracy: %.1f%%' % (alpha, T, w, acc))
+  print('Student : Number of wrong classificiation: %d Test accuracy: %.1f%%' % (w, acc))
+  with open("output.txt", "a") as myfile:
+    myfile.write('Student : Number of wrong classificiation: %d Test accuracy: %.1f%%' % (w, acc))
 
 
 
-batch_size = 100
+batch_size = 500
 patch_size_teacher = 5
 patch_size_student = 3
 depth_teacher = 64
@@ -247,7 +257,7 @@ depth_student = 16
 num_hidden_teacher = 1200
 num_hidden_student = 200
 # num_epochs_teacher = 3
-num_epochs_student = 10
+num_epochs_student = 20
 T = 10
 prob = 1
 
@@ -408,7 +418,7 @@ with graph_student_guided.as_default():
   # 1st Half Training
   # loss_student = tf.reduce_mean(tf.nn.l2_loss(logits_teacher_eval1 - regressed_first_half))
   loss_student = tf.losses.mean_squared_error(labels=logits_teacher_eval1, predictions=regressed_first_half)
-  optimizer_student = tf.train.GradientDescentOptimizer(learning_rate=0.00001).minimize(loss_student, var_list=student_first_half_params)
+  optimizer_student = tf.train.GradientDescentOptimizer(learning_rate=0.0001).minimize(loss_student, var_list=student_first_half_params)
 
   # KD
   # logits_student_soft = logits_student2 / T
@@ -435,7 +445,7 @@ def train_student_KD():
   with tf.device(current_device):
     # graph_student_guided = make_student_graph_KD()
 
-    with tf.Session(graph=graph_student_guided) as session:
+    with tf.Session(graph=graph_student_guided, config=config) as session:
       tf.global_variables_initializer().run()
       
       saver = tf.train.Saver(var_list=teacher_parameters)
@@ -448,21 +458,24 @@ def train_student_KD():
         saver = tf.train.Saver(var_list=[layer_regressor_student])
         saver.restore(session, export_dir + model_name_save_regressor)
 
+        # saver = tf.train.Saver(var_list=student_first_half_params)
+        # saver.restore(session, export_dir + model_name_save_student)
+
       except:
         pass
 
-      print ("Testing Teacher for sanity check")
-      acc, w = test_accuracy(session)
-      print('Teacher : Number of wrong classificiation: %d Test accuracy: %.1f%%' % (w, acc))
+      # print ("Testing Teacher for sanity check")
+      # acc, w = test_accuracy(session)
+      # print('Teacher : Number of wrong classificiation: %d Test accuracy: %.1f%%' % (w, acc))
 
-      print ("Testing Student for sanity check")
-      acc, w = test_accuracy(session, False)
-      print('Student : Number of wrong classificiation: %d Test accuracy: %.1f%%' % (w, acc))
+      # print ("Testing Student for sanity check")
+      # acc, w = test_accuracy(session, False)
+      # print('Student : Number of wrong classificiation: %d Test accuracy: %.1f%%' % (w, acc))
 
       Train_Student(session)
 
 
-train_student_KD()
+# train_student_KD()
 
 
 
