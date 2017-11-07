@@ -228,7 +228,7 @@ def Train_Student(session):
         # if stage == 2:
         _, l, predictions = session.run([optimizer_student, loss_student, prediction_student], feed_dict=feed_dict)          
 
-        if minibatch_num % 100 == 0:            
+        if minibatch_num % 10 == 0:            
           print('Minibatch loss at step %d and epoch %d : %f' % (minibatch_num, epoch, l))
           print('Minibatch accuracy: %.1f%%' % accuracy(predictions, new_batch_labels))
 
@@ -245,7 +245,7 @@ def Train_Student(session):
   acc, w = test_accuracy(session, teacher=False)
   print('Student : Number of wrong classificiation: %d Test accuracy: %.1f%%' % (w, acc))
   with open("output.txt", "a") as myfile:
-    myfile.write('Student : Number of wrong classificiation: %d Test accuracy: %.1f%%' % (w, acc))
+    myfile.write('Student : Number of wrong classificiation: %d Test accuracy: %.1f%% \n' % (w, acc))
 
 
 
@@ -257,12 +257,12 @@ depth_student = 16
 num_hidden_teacher = 1200
 num_hidden_student = 200
 # num_epochs_teacher = 3
-num_epochs_student = 20
+num_epochs_student = 25
 T = 10
 prob = 1
 
 alpha = 0
-beta = 0.001
+beta = 10
 
 # def make_student_graph_KD():
 graph_student_guided = tf.Graph()
@@ -417,8 +417,9 @@ with graph_student_guided.as_default():
   regressed_first_half = tf.matmul(logits_student1, layer_regressor_student)
   # 1st Half Training
   # loss_student = tf.reduce_mean(tf.nn.l2_loss(logits_teacher_eval1 - regressed_first_half))
-  loss_student = tf.losses.mean_squared_error(labels=logits_teacher_eval1, predictions=regressed_first_half)
-  optimizer_student = tf.train.GradientDescentOptimizer(learning_rate=0.0001).minimize(loss_student, var_list=student_first_half_params)
+  loss_student = tf.losses.mean_squared_error(labels=logits_teacher_eval1, predictions=regressed_first_half) + \
+                  beta * (tf.nn.l2_loss(layer1_weights_student) + tf.nn.l2_loss(layer2_weights_student) + tf.nn.l2_loss(layer3_weights_student) )
+  optimizer_student = tf.train.GradientDescentOptimizer(learning_rate=0.00001).minimize(loss_student, var_list=student_first_half_params)
 
   # KD
   # logits_student_soft = logits_student2 / T

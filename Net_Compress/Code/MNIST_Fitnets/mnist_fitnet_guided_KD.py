@@ -229,7 +229,7 @@ def Train_Student(session, flag):
         # if stage == 2:
         _, l, predictions = session.run([optimizer_student, loss_student, prediction_student], feed_dict=feed_dict)          
 
-        if minibatch_num % 100 == 0:            
+        if minibatch_num % 10 == 0:            
           print('Minibatch loss at step %d and epoch [%d|%d] : %f' % (minibatch_num, epoch+1, num_epochs_student, l))
           print('Minibatch accuracy: %.1f%%' % accuracy(predictions, new_batch_labels))
 
@@ -246,7 +246,7 @@ def Train_Student(session, flag):
   acc, w = test_accuracy(session, teacher=False)
   print('Student : flag = %d, alpha = %f, T = %d, Number of wrong classificiation: %d Test accuracy: %.1f%%' % (flag, alpha, T, w, acc))
   with open("output.txt", "a") as myfile:
-    myfile.write('Student : flag = %d, alpha = %f, T = %d, Number of wrong classificiation: %d Test accuracy: %.1f%%' % (flag, alpha, T, w, acc))
+    myfile.write('Student : flag = %d, alpha = %f, T = %d, Number of wrong classificiation: %d Test accuracy: %.1f%% \n' % (flag, alpha, T, w, acc))
 
 
 batch_size = 500

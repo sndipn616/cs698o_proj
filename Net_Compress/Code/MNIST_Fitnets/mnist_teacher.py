@@ -204,7 +204,7 @@ def Train_Teacher(session):
         feed_dict = {tf_train_dataset : new_batch_data, tf_train_labels : new_batch_labels}
         _, l, predictions = session.run([optimizer_teacher, loss_teacher, prediction_teacher_train], feed_dict=feed_dict)
 
-        if minibatch_num % 100 == 0:
+        if minibatch_num % 10 == 0:
           print('Minibatch loss at step %d: %f' % (minibatch_num, l))          
           print('Minibatch accuracy: %.1f%%' % accuracy(predictions, new_batch_labels))
 
@@ -218,7 +218,7 @@ def Train_Teacher(session):
   acc, w = test_accuracy(session)
   print('Teacher : Total Iteration %d, Number of wrong classificiation: %d Test accuracy: %.1f%%' % (num_epochs, w, acc))
   with open("output.txt", "a") as myfile:
-    myfile.write('Teacher : Total Iteration %d, Number of wrong classificiation: %d Test accuracy: %.1f%%' % (num_epochs, w, acc))
+    myfile.write('Teacher : Total Iteration %d, Number of wrong classificiation: %d Test accuracy: %.1f%% \n' % (num_epochs, w, acc))
 
 
 batch_size = 500
@@ -322,7 +322,7 @@ with graph_teacher.as_default():
 
   '''Optimizer'''
   # Learning rate of 0.05
-  optimizer_teacher = tf.train.GradientDescentOptimizer(learning_rate=0.00001).minimize(loss_teacher)
+  optimizer_teacher = tf.train.GradientDescentOptimizer(learning_rate=0.0001).minimize(loss_teacher)
   # optimizer_teacher = tf.train.AdamOptimizer(learning_rate=0.00001).minimize(loss_teacher) 
 
   '''Predictions for the training, validation, and test data'''

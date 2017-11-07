@@ -204,7 +204,7 @@ def Train_Student(session):
         feed_dict = {tf_train_dataset : new_batch_data, tf_train_labels : new_batch_labels}
         _, l, predictions = session.run([optimizer_student, loss_student, prediction_student], feed_dict=feed_dict)
 
-        if minibatch_num % 100 == 0:
+        if minibatch_num % 10 == 0:
           print('Minibatch loss at step %d: %f' % (minibatch_num, l))          
           print('Minibatch accuracy: %.1f%%' % accuracy(predictions, new_batch_labels))
 
@@ -218,7 +218,7 @@ def Train_Student(session):
   acc, w = test_accuracy(session)
   print('Student : Total Iteration %d, Number of wrong classificiation: %d Test accuracy: %.1f%%' % (num_epochs, w, acc))
   with open("output.txt", "a") as myfile:
-    myfile.write('Student : Total Iteration %d, Number of wrong classificiation: %d Test accuracy: %.1f%%' % (num_epochs, w, acc))
+    myfile.write('Student : Total Iteration %d, Number of wrong classificiation: %d Test accuracy: %.1f%% \n' % (num_epochs, w, acc))
 
 
 
@@ -317,7 +317,7 @@ with graph_student.as_default():
 
   '''Optimizer'''
   # Learning rate of 0.05
-  optimizer_student = tf.train.GradientDescentOptimizer(learning_rate=0.00001).minimize(loss_student)
+  optimizer_student = tf.train.GradientDescentOptimizer(learning_rate=0.0001).minimize(loss_student)
   # optimizer_student = tf.train.AdamOptimizer(learning_rate=0.0001).minimize(loss_student) 
 
   '''Predictions for the training, validation, and test data'''
