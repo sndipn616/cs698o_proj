@@ -251,7 +251,7 @@ with graph_student.as_default():
   
   # Conv1 to Conv2 Layer 
   layer2_weights_student = tf.Variable(tf.truncated_normal([patch_size, patch_size, depth, depth], stddev=0.1), name='l2ws')
-  layer2_biases_student = tf.Variable(tf.constant(1.0, shape=[int(depth/2)]), name='l2bs')
+  layer2_biases_student = tf.Variable(tf.constant(1.0, shape=[depth]), name='l2bs')
 
   # Conv2 to Conv3 Layer 
   layer3_weights_student = tf.Variable(tf.truncated_normal([patch_size, patch_size, depth, depth], stddev=0.1), name='l3ws')
