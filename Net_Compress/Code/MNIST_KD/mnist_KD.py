@@ -422,7 +422,7 @@ with graph_student_KD.as_default():
 
   '''Optimizer'''
   # Learning rate of 0.05
-  optimizer_student = tf.train.GradientDescentOptimizer(learning_rate=0.0001).minimize(loss_student, var_list=student_parameters)
+  optimizer_student = tf.train.GradientDescentOptimizer(learning_rate=0.00005).minimize(loss_student, var_list=student_parameters)
   # optimizer_student = tf.train.AdamOptimizer(learning_rate=0.0001).minimize(loss_student) 
 
   '''Predictions for the training, validation, and test data'''
@@ -443,7 +443,7 @@ def train_student_KD():
 
       try:
         saver = tf.train.Saver(var_list=student_parameters)
-        saver.save(session, export_dir_init_student + model_name_initial_student, write_meta_graph=True)
+        saver.restore(session, export_dir_init_student + model_name_initial_student)
       except:
         pass
 

@@ -253,7 +253,7 @@ def Train_Student(session):
   model_saver.save(session, export_dir + model_name_save_student + '_' + str(alpha) + '_' + str(beta) + '_' + str(T), write_meta_graph=True)
 
   acc, w = test_accuracy(session, teacher=False)
-  print('Student : Iterations %d, alpha = %f, T = %d, Number of wrong classificiation: %d Test accuracy: %.1f%%' % (num_epochs_student, alpha, T, w, acc))
+  print('Student : Iterations %d, alpha = %f, beta = %f, T = %d, Number of wrong classificiation: %d Test accuracy: %.1f%%' % (num_epochs_student, alpha, beta, T, w, acc))
 
 
 
@@ -272,7 +272,7 @@ num_epochs_student = 10
 
 T = 10
 
-alpha = 5
+alpha = 15
 beta = 1
 
 # def make_student_graph_KD():
@@ -459,7 +459,7 @@ with graph_student_KD.as_default():
 
   '''Optimizer'''
   # Learning rate of 0.05
-  optimizer_student = tf.train.GradientDescentOptimizer(learning_rate=0.0001).minimize(loss_student, var_list=student_parameters)
+  optimizer_student = tf.train.GradientDescentOptimizer(learning_rate=0.00005).minimize(loss_student, var_list=student_parameters)
   # optimizer_student = tf.train.AdamOptimizer(learning_rate=0.0001).minimize(loss_student) 
 
   '''Predictions for the training, validation, and test data'''
@@ -483,7 +483,7 @@ def train_student_KD_adv():
 
       try:
         saver = tf.train.Saver(var_list=student_parameters)
-        saver.save(session, export_dir_init_student + model_name_initial_student, write_meta_graph=True)
+        saver.restore(session, export_dir_init_student + model_name_initial_student)
       except:
         pass
 
