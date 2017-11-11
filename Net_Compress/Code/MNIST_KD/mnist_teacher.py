@@ -229,9 +229,9 @@ depth = 128
 
 
 prob = 0.5
-num_hidden = 1200
+num_hidden = 1024
 
-num_epochs = 20
+num_epochs = 10
 beta = 0.001
 
 
@@ -242,18 +242,14 @@ with graph_teacher.as_default():
   '''Input data'''
   tf_train_dataset = tf.placeholder(tf.float32, shape=(batch_size, image_size, image_size, num_channels), name='x')
   tf_train_labels = tf.placeholder(tf.float32, shape=(batch_size, num_labels), name='y')
-  # tf_valid_dataset = tf.constant(valid_dataset)
-  # tf_test_dataset = tf.constant(test_dataset)
-  # tf_test_dataset = tf.placeholder(tf.float32, shape=(batch_size, image_size, image_size, num_channels))
-  # tf_test_labels = tf.placeholder(tf.float32, shape=(batch_size, num_labels))
-
+ 
   '''Variables For Teacher'''
   # Input to Conv1 Layer    
-  layer1_weights_teacher = tf.Variable(tf.truncated_normal([patch_size, patch_size, num_channels, depth], stddev=0.1), name='l1wt')
-  layer1_biases_teacher = tf.Variable(tf.zeros([depth]), name='l1bt')
+  layer1_weights_teacher = tf.Variable(tf.truncated_normal([patch_size, patch_size, num_channels, int(depth/2)], stddev=0.1), name='l1wt')
+  layer1_biases_teacher = tf.Variable(tf.zeros([int(depth/2)]), name='l1bt')
 
   # Conv1 to Conv2 Layer    
-  layer2_weights_teacher = tf.Variable(tf.truncated_normal([patch_size, patch_size, depth, depth], stddev=0.1), name='l2wt')
+  layer2_weights_teacher = tf.Variable(tf.truncated_normal([patch_size, patch_size, int(depth/2), depth], stddev=0.1), name='l2wt')
   layer2_biases_teacher = tf.Variable(tf.zeros([depth]), name='l2bt')
   
   teacher_first_half_params = [layer1_weights_teacher, layer1_biases_teacher, layer2_weights_teacher, layer2_biases_teacher]
