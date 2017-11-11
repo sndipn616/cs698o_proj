@@ -22,14 +22,16 @@ config.gpu_options.per_process_gpu_memory_fraction = 0.4
 current_device = '/gpu:' + str(gpu_num)
 export_dir_teacher = 'MNIST_Model_Teacher/'
 export_dir_student = 'MNIST_Model_Student/'
+export_dir_init_student = 'Initial_Wts_Student/'
 export_dir = 'MNIST_Model_Student_KD/'
 temp_dir = 'MNIST_Model_Student/'
 # model_saver = tf.saved_model.builder.SavedModelBuilder(export_dir)
 
 model_name = 'mnist_tf_basic'
-model_name_save_teacher = 'mnist_paper_teacher'
-model_name_save_student_trained = 'mnist_paper_student'
-model_name_save_student = 'mnist_paper_student_KD'
+model_name_save_teacher = 'mnist_teacher'
+model_name_save_student_trained = 'mnist_student'
+model_name_save_student = 'mnist_student_KD'
+model_name_initial_student = 'mnist_student_init'
 data_dir = 'MNIST_data/'
 
 def return_pointers():
@@ -226,7 +228,7 @@ def Train_Student(session):
         _, l, predictions = session.run([optimizer_student, loss_student, prediction_student], feed_dict=feed_dict)
         # l, predictions, _, _ = session.run([loss_student, prediction_student, logits_teacher, prediction_teacher], feed_dict=feed_dict)
 
-        if minibatch_num % 100 == 0:
+        if minibatch_num % 10 == 0:
           # print (type(l))
           print('Minibatch loss at step %d and epoch %d : %f' % (minibatch_num, epoch, l))          
           print('Minibatch accuracy: %.1f%%' % accuracy(predictions, new_batch_labels))
@@ -239,23 +241,23 @@ def Train_Student(session):
   model_saver.save(session, export_dir + model_name_save_student + str(alpha) + '_' + str(T), write_meta_graph=True)
 
   acc, w = test_accuracy(session, teacher=False)
-  print('Student : alpha = %f, T = %d, Number of wrong classificiation: %d Test accuracy: %.1f%%' % (alpha, T, w, acc))
+  print('Student : Iterations %d, alpha = %f, T = %d, Number of wrong classificiation: %d Test accuracy: %.1f%%' % (num_epochs_student, alpha, T, w, acc))
 
 
 
 batch_size = 500
 patch_size_teacher = 5
 patch_size_student = 5
-depth_teacher = 128
+depth_teacher = 64
 depth_student = 16
-num_hidden_teacher = 1200
+num_hidden_teacher = 1000
 num_hidden_student = 200
 # num_epochs_teacher = 3
-num_epochs_student = 5
+num_epochs_student = 10
 T = 10
 prob = 1
 
-alpha = 0
+alpha = 10
 beta = 0.001
 
 # def make_student_graph_KD():
@@ -420,7 +422,7 @@ with graph_student_KD.as_default():
 
   '''Optimizer'''
   # Learning rate of 0.05
-  optimizer_student = tf.train.GradientDescentOptimizer(learning_rate=0.00001).minimize(loss_student, var_list=student_parameters)
+  optimizer_student = tf.train.GradientDescentOptimizer(learning_rate=0.0001).minimize(loss_student, var_list=student_parameters)
   # optimizer_student = tf.train.AdamOptimizer(learning_rate=0.0001).minimize(loss_student) 
 
   '''Predictions for the training, validation, and test data'''
@@ -439,8 +441,11 @@ def train_student_KD():
       saver = tf.train.Saver(var_list=teacher_parameters)
       saver.restore(session, export_dir_teacher + model_name_save_teacher)
 
-      saver = tf.train.Saver(var_list=student_parameters)
-      saver.restore(session, export_dir_student + model_name_save_student_trained)
+      try:
+        saver = tf.train.Saver(var_list=student_parameters)
+        saver.save(session, export_dir_init_student + model_name_initial_student, write_meta_graph=True)
+      except:
+        pass
 
       print ("Testing Teacher for sanity check")
       acc, w = test_accuracy(session)
