@@ -22,6 +22,7 @@ config.gpu_options.per_process_gpu_memory_fraction = 0.4
 current_device = '/gpu:' + str(gpu_num)
 export_dir_teacher = 'MNIST_Model_Teacher/'
 export_dir_student = 'MNIST_Model_Student/'
+export_dir_init_student = 'Initial_Wts_Student/'
 export_dir_disc = 'Disc_GAN/'
 export_dir = 'MNIST_Model_Student_KD_GAN/'
 temp_dir = 'MNIST_Model_Student/'
@@ -30,6 +31,7 @@ temp_dir = 'MNIST_Model_Student/'
 # model_name = 'mnist_tf_basic'
 model_name_save_teacher = 'mnist_teacher'
 model_name_save_student_trained = 'mnist_student'
+model_name_initial_student = 'mnist_student_init'
 model_name_save_disc = 'disc_model_GAN'
 model_name_save_student = 'mnist_student_KD_GAN'
 data_dir = 'MNIST_data/'
@@ -68,7 +70,7 @@ num_channels = 1 # grayscale
 
 def reformat(dataset, labels):
   dataset = dataset.reshape(
-    (-1, image_size * image_size * num_channels)).astype(np.float32)
+    (-1, image_size, image_size, num_channels)).astype(np.float32)
   labels = (np.arange(num_labels) == labels[:,None]).astype(np.float32)
   # labels = np.arange(num_labels) == labels[:,None]
 
@@ -238,7 +240,7 @@ def Train_Student(session):
         _, _, l, predictions = session.run([D_solver, G_solver, loss_student, prediction_student], feed_dict=feed_dict)
         # l, predictions, _, _ = session.run([loss_student, prediction_student, logits_teacher, prediction_teacher], feed_dict=feed_dict)
 
-        if minibatch_num % 100 == 0:
+        if minibatch_num % 10 == 0:
           # print (type(l))
           print('Minibatch loss at step %d and epoch %d : %f' % (minibatch_num, epoch, l))          
           print('Minibatch accuracy: %.1f%%' % accuracy(predictions, new_batch_labels))
@@ -354,32 +356,64 @@ with graph_student_KD.as_default():
   prediction_teacher_eval = tf.nn.softmax(logits_teacher_eval)
 
   '''Variables For Student'''
-  # Input to Hidden1 Layer    
-  layer1_weights_student = tf.Variable(tf.truncated_normal([image_size * image_size * num_channels, num_hidden_student], stddev=0.1), name='l1ws')
-  layer1_biases_student = tf.Variable(tf.zeros([num_hidden_student]), name='l1bs')
+  # Input to Conv1 Layer    
+  layer1_weights_student = tf.Variable(tf.truncated_normal([patch_size_student, patch_size_student, num_channels, depth_student], stddev=0.1), name='l1ws')
+  layer1_biases_student = tf.Variable(tf.zeros([depth_student]), name='l1bs')
   
-  # Hidden1 to Hidden2 Layer
-  layer2_weights_student = tf.Variable(tf.truncated_normal([num_hidden_student, num_hidden_student], stddev=0.1), name='l2ws')
-  layer2_biases_student = tf.Variable(tf.constant(1.0, shape=[num_hidden_student]), name='l2bs')
+  # Conv1 to Conv2 Layer 
+  layer2_weights_student = tf.Variable(tf.truncated_normal([patch_size_student, patch_size_student, depth_student, depth_student], stddev=0.1), name='l2ws')
+  layer2_biases_student = tf.Variable(tf.constant(1.0, shape=[depth_student]), name='l2bs')
 
-  # Hidden2 to Output Layer
-  layer3_weights_student = tf.Variable(tf.truncated_normal([num_hidden_student, num_labels], stddev=0.1), name='l3ws')
-  layer3_biases_student = tf.Variable(tf.constant(1.0, shape=[num_labels]), name='l3bs')
+  # Conv2 to Conv3 Layer 
+  layer3_weights_student = tf.Variable(tf.truncated_normal([patch_size_student, patch_size_student, depth_student, depth_student], stddev=0.1), name='l3ws')
+  layer3_biases_student = tf.Variable(tf.constant(1.0, shape=[depth_student]), name='l3bs')
 
-  student_parameters = [layer1_weights_student, layer1_biases_student, layer2_weights_student, layer2_biases_student, layer3_weights_student, layer3_biases_student]
+  student_first_half_params = [layer1_weights_student, layer1_biases_student, layer2_weights_student, layer2_biases_student, layer3_weights_student, layer3_biases_student]
+  # Conv3 to FC1 Layer
+  final_image_size = 4
+  layer4_weights_student = tf.Variable(tf.truncated_normal([final_image_size * final_image_size * depth_student, num_hidden_student], stddev=0.1), name='l4ws')
+  layer4_biases_student = tf.Variable(tf.constant(1.0, shape=[num_hidden_student]), name='l4bs')
+
+  # FC1 to FC2 Layer
+  layer5_weights_student = tf.Variable(tf.truncated_normal([num_hidden_student, num_hidden_student], stddev=0.1), name='l5ws')
+  layer5_biases_student = tf.Variable(tf.constant(1.0, shape=[num_hidden_student]), name='l5bs')
+
+  # FC2 to FC3 Layer
+  layer6_weights_student = tf.Variable(tf.truncated_normal([num_hidden_student, num_labels], stddev=0.1), name='l6ws')
+  layer6_biases_student = tf.Variable(tf.constant(1.0, shape=[num_labels]), name='l6bs')
+
+  student_second_half_params = [layer4_weights_student, layer4_biases_student, layer5_weights_student, layer5_biases_student, layer6_weights_student, layer6_biases_student]
+
+  student_parameters = [layer1_weights_student, layer1_biases_student, layer2_weights_student, layer2_biases_student, layer3_weights_student, layer3_biases_student, layer4_weights_student, layer4_biases_student, layer5_weights_student, layer5_biases_student, layer6_weights_student, layer6_biases_student]
+
 
   def student_model(data):
-    out = tf.matmul(data, layer1_weights_student) + layer1_biases_student
-    out = tf.nn.relu(out)
+    # First Convolutional Layer with Pooling
+    conv_1 = tf.nn.conv2d(data, layer1_weights_student, strides=[1, 1, 1, 1], padding='SAME')
+    hidden_1 = tf.nn.relu(conv_1 + layer1_biases_student)
+    pool_1 = tf.nn.max_pool(hidden_1, [1, 2, 2, 1], [1, 2, 2, 1], padding='SAME')
+    
+    # Second Convolutional Layer with Pooling
+    conv_2 = tf.nn.conv2d(pool_1, layer2_weights_student, strides=[1, 1, 1, 1], padding='SAME')
+    hidden_2 = tf.nn.relu(conv_2 + layer2_biases_student)
+    pool_2 = tf.nn.max_pool(hidden_2, [1, 2, 2, 1], [1, 2, 2, 1], padding='SAME')
 
-    out = tf.matmul(out, layer2_weights_student) + layer2_biases_student
-    out = tf.nn.relu(out)
+    # Third Convolutional Layer with Pooling
+    conv_3 = tf.nn.conv2d(pool_2, layer3_weights_student, strides=[1, 1, 1, 1], padding='SAME')
+    hidden_3 = tf.nn.relu(conv_3 + layer3_biases_student)
+    pool_3 = tf.nn.max_pool(hidden_3, [1, 2, 2, 1], [1, 2, 2, 1], padding='SAME')
+    
+    # Full Connected Layer
+    # print ("Shape - ")
+    # print (pool_3.get_shape())
+    shape = pool_3.get_shape().as_list()
+    reshape = tf.reshape(pool_3, [shape[0], shape[1] * shape[2] * shape[3]])
+    hidden = tf.nn.relu(tf.matmul(reshape, layer4_weights_student) + layer4_biases_student)
 
-    out = tf.matmul(out, layer3_weights_student) + layer3_biases_student
-
-    return out
-
-  logits_student = student_model(tf_train_dataset)
+    hidden = tf.nn.relu(tf.matmul(hidden, layer5_weights_student) + layer5_biases_student)
+    
+    # Readout Layer: Softmax Layer
+    return tf.matmul(hidden, layer6_weights_student) + layer6_biases_student
 
   '''Variables For Discriminator'''
   # Input to Hidden1 Layer    
@@ -409,7 +443,8 @@ with graph_student_KD.as_default():
 
   
   '''Training computation''' 
-  # Fake  
+  # Fake
+  logits_student = student_model(tf_train_dataset)
   logits_disc_student = discriminator_model(logits_student)
   # pred_disc_student = tf.nn.softmax(logits_disc_student) # may be sigmoid
   pred_disc_student1 = tf.log(tf.maximum(tf.nn.sigmoid(logits_disc_student), 1e-9)) # may be sigmoid
@@ -425,9 +460,9 @@ with graph_student_KD.as_default():
     tf.nn.softmax_cross_entropy_with_logits(labels=tf_train_labels, logits=logits_student)) - alpha*tf.reduce_mean(pred_disc_student1)
 
   # Only update Discriminator's parameters, so var_list = disc_parameters
-  D_solver = tf.train.AdamOptimizer(learning_rate=0.000001).minimize(loss_disc, var_list=disc_parameters)
+  D_solver = tf.train.AdamOptimizer(learning_rate=0.00001).minimize(loss_disc, var_list=disc_parameters)
   # Only update Student's parameters, so var_list = student_parameters
-  G_solver = tf.train.AdamOptimizer(learning_rate=0.00001).minimize(loss_gen, var_list=student_parameters)
+  G_solver = tf.train.AdamOptimizer(learning_rate=0.0001).minimize(loss_gen, var_list=student_parameters)
 
 
   loss_student = tf.reduce_mean(
@@ -447,11 +482,14 @@ def train_student_KD_GAN():
       saver = tf.train.Saver(var_list=teacher_parameters)
       saver.restore(session, export_dir_teacher + model_name_save_teacher)
 
-      saver = tf.train.Saver(var_list=student_parameters)
-      saver.restore(session, export_dir_student + model_name_save_student_trained)
+      try:
+        saver = tf.train.Saver(var_list=student_parameters)
+        saver.restore(session, export_dir_init_student + model_name_initial_student)
+      except:
+        pass
 
-      saver = tf.train.Saver(var_list=disc_parameters)
-      saver.restore(session, export_dir_disc + model_name_save_disc)
+      # saver = tf.train.Saver(var_list=disc_parameters)
+      # saver.restore(session, export_dir_disc + model_name_save_disc)
 
       print ("Testing Teacher for sanity check")
       acc, w = test_accuracy(session)
