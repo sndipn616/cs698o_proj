@@ -458,16 +458,16 @@ with graph_student_KD.as_default():
     tf.nn.softmax_cross_entropy_with_logits(labels=tf_train_labels, logits=logits_student)) - alpha*tf.reduce_mean(logits_disc_student)
 
   # Only update Discriminator's parameters, so var_list = disc_parameters
-  D_solver = tf.train.RMSPropOptimizer(learning_rate=5e-5).minimize(loss_disc, var_list=disc_parameters)
+  D_solver = tf.train.RMSPropOptimizer(learning_rate=0.000002).minimize(loss_disc, var_list=disc_parameters)
   # Only update Student's parameters, so var_list = student_parameters
-  G_solver = tf.train.RMSPropOptimizer(learning_rate=5e-5).minimize(loss_gen, var_list=student_parameters)
+  G_solver = tf.train.RMSPropOptimizer(learning_rate=0.0001).minimize(loss_gen, var_list=student_parameters)
 
-  layer1_weights_disc = tf.clip_by_value(layer1_weights_disc, -1, 1)
-  layer1_biases_disc = tf.clip_by_value(layer1_biases_disc, -1, 1)
-  layer2_weights_disc = tf.clip_by_value(layer2_weights_disc, -1, 1)
-  layer2_biases_disc = tf.clip_by_value(layer2_biases_disc, -1, 1)
-  layer3_weights_disc = tf.clip_by_value(layer3_weights_disc, -1, 1)
-  layer3_biases_disc = tf.clip_by_value(layer3_biases_disc, -1, 1)
+  layer1_weights_disc = tf.clip_by_value(layer1_weights_disc, -0.1, 0.1)
+  layer1_biases_disc = tf.clip_by_value(layer1_biases_disc, -0.1, 0.1)
+  layer2_weights_disc = tf.clip_by_value(layer2_weights_disc, -0.1, 0.1)
+  layer2_biases_disc = tf.clip_by_value(layer2_biases_disc, -0.1, 0.1)
+  layer3_weights_disc = tf.clip_by_value(layer3_weights_disc, -0.1, 0.1)
+  layer3_biases_disc = tf.clip_by_value(layer3_biases_disc, -0.1, 0.1)
 
 
   loss_student = tf.reduce_mean(
