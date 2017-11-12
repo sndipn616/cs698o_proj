@@ -33,6 +33,7 @@ data_dir = 'MNIST_data/'
 # model_name = 'mnist_tf_basic'
 model_name_save_teacher = 'mnist_teacher'
 model_name_save_student_trained = 'mnist_student'
+model_name_initial_student = 'mnist_student_init'
 model_name_save_disc = 'disc_model'
 model_name_save_student = 'mnist_student_KD_adv'
 
@@ -249,8 +250,8 @@ def Train_Student(session):
     labels.close()
         
 
-  model_saver = tf.train.Saver(var_list=student_parameters)
-  model_saver.save(session, export_dir + model_name_save_student + '_' + str(alpha) + '_' + str(beta) + '_' + str(T), write_meta_graph=True)
+  # model_saver = tf.train.Saver(var_list=student_parameters)
+  # model_saver.save(session, export_dir + model_name_save_student + '_' + str(alpha) + '_' + str(beta) + '_' + str(T), write_meta_graph=True)
 
   acc, w = test_accuracy(session, teacher=False)
   print('Student : Iterations %d, alpha = %f, beta = %f, T = %d, Number of wrong classificiation: %d Test accuracy: %.1f%%' % (num_epochs_student, alpha, beta, T, w, acc))
@@ -273,7 +274,7 @@ num_epochs_student = 10
 T = 10
 
 alpha = 15
-beta = 1
+beta = 2
 
 # def make_student_graph_KD():
 graph_student_KD = tf.Graph()

@@ -253,7 +253,7 @@ def Train_Student(session):
   model_saver.save(session, export_dir + model_name_save_student + '_' + str(alpha) + '_' + str(beta) + '_' + str(gamma) + '_' + str(T), write_meta_graph=True)
 
   acc, w = test_accuracy(session, teacher=False)
-  print('Student : alpha = %f, beta = %f, T = %d, Number of wrong classificiation: %d Test accuracy: %.1f%%' % (alpha, beta, T, w, acc))
+  print('Student : alpha = %f, beta = %f, gamma = %f, T = %d, Number of wrong classificiation: %d Test accuracy: %.1f%%' % (alpha, beta, gamma, T, w, acc))
 
 
 
