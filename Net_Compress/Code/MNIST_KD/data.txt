@@ -16,3 +16,7 @@ Student KD WGAN -
 Student : alpha = 3.000000, beta = 5.000000, T = 10, Number of wrong classificiation: 1524 Test accuracy: 84.8%
 Student : alpha = 3.000000, beta = 10.000000, T = 10, Number of wrong classificiation: 1018 Test accuracy: 89.8%
 Student : alpha = 3.000000, beta = 10.000000, T = 10, Number of wrong classificiation: 750 Test accuracy: 92.5%
+
+Teacher (number of parameters ~ 3250000)
+Student (number of parameters ~ 106400)
+Discriminator (number of parameters ~ 11200)
