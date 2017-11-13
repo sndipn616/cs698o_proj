@@ -8,7 +8,7 @@ Student : Iterations 10, alpha = 10.000000, T = 10, Number of wrong classificiat
 Student : Iterations 10, alpha = 10.000000, T = 15, Number of wrong classificiation: 2653 Test accuracy: 73.5%
 Student : Iterations 10, alpha = 10.000000, T = 5, Number of wrong classificiation: 1760 Test accuracy: 82.4%
 Student KD adv -
-Student : Iterations 10, alpha = 15.000000, beta = 0.200000, T = 10, Number of wrong classificiation: 1539 Test accuracy: 84.6%
+Student : Iterations 10, alpha = 15.000000, beta = 0.200000, T = 10, Number of wrong classificiation: 1615 Test accuracy: 83.8%
 
 Student KD GAN -
 Student : alpha = 3.000000, beta = 5.000000, gamma = 2.000000, T = 10, Number of wrong classificiation: 1702 Test accuracy: 83.0%
