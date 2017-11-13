@@ -1,25 +1,23 @@
-MNIST
-Teacher : Number of wrong classificiation: 476 Test accuracy: 95.2%
-Student : Number of wrong classificiation: 594 Test accuracy: 94.1%
-Student(KD) - 
+MNIST - 
+Teacher - 
+Teacher : Total Iteration 10, Number of wrong classificiation: 611 Test accuracy: 93.9%
+Student - 
+Student : Total Iteration 10, Number of wrong classificiation: 1433 Test accuracy: 85.7%
+Student KD -
+Student : Iterations 10, alpha = 10.000000, T = 10, Number of wrong classificiation: 809 Test accuracy: 91.9%
+Student KD adv - 
+Student : Iterations 10, alpha = 15.000000, beta = 1.000000, T = 10, Number of wrong classificiation: 904 Test accuracy: 91.0%
+Student : Iterations 10, alpha = 15.000000, beta = 2.000000, T = 10, Number of wrong classificiation: 856 Test accuracy: 91.4%
+Student : Iterations 10, alpha = 15.000000, beta = 3.000000, T = 10, Number of wrong classificiation: 945 Test accuracy: 90.5%
+Student : Iterations 10, alpha = 15.000000, beta = 2.500000, T = 10, Number of wrong classificiation: 907 Test accuracy: 90.9%
+Student KD GAN - 
+Student : alpha = 3.000000, beta = 5.000000, gamma = 2.000000, T = 10, Number of wrong classificiation: 753 Test accuracy: 92.5%
+Student KD WGAN -
+Student : alpha = 3.000000, beta = 5.000000, T = 10, Number of wrong classificiation: 1524 Test accuracy: 84.8%
+Student : alpha = 3.000000, beta = 10.000000, T = 10, Number of wrong classificiation: 1018 Test accuracy: 89.8%
+Student : alpha = 3.000000, beta = 10.000000, gamma = 0.100000, T = 10, Number of wrong classificiation: 582 Test accuracy: 94.2%
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-Student : alpha = 1.000000, beta = 0.000000, T = 10, Number of wrong classificiation: 565 Test accuracy: 94.3%
-Student : alpha = 1.000000, beta = 0.500000, T = 10, Number of wrong classificiation: 557 Test accuracy: 94.4%
-Student : alpha = 5.000000, beta = 1.000000, T = 10, Number of wrong classificiation: 411 Test accuracy: 95.9%
-Student : alpha = 10.000000, beta = 1.000000, T = 10, Number of wrong classificiation: 375 Test accuracy: 96.2%
-Student : alpha = 15.000000, beta = 1.000000, T = 10, Number of wrong classificiation: 474 Test accuracy: 95.3%
+Teacher (number of parameters ~ 3250000)
+Student (number of parameters ~ 106400)
+Discriminator (number of parameters ~ 11200)
