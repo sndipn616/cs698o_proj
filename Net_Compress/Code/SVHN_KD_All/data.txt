@@ -1,0 +1,27 @@
+SVHN - 
+Teacher - 
+Teacher : Total Iteration 50, Number of wrong classificiation: 5199 Test accuracy: 80.0%
+Student -
+Student : Total Iteration 10, Number of wrong classificiation: 19419 Test accuracy: 25.3%
+Student KD -
+Student : Iterations 10, alpha = 5.000000, T = 5, Number of wrong classificiation: 16652 Test accuracy: 36.0%
+
+
+Student KD adv -
+Student : Iterations 10, alpha = 15.000000, beta = 0.200000, T = 10, Number of wrong classificiation: 12964 Test accuracy: 50.1%
+
+
+Student KD GAN -
+Student : alpha = 3.000000, beta = 5.000000, gamma = 2.000000, T = 10, Number of wrong classificiation: 12797 Test accuracy: 50.8%
+
+
+Student KD WGAN -
+Student : alpha = 2.000000, beta = 15.000000, gamma = 0.100000, T = 10, Number of wrong classificiation: 10838 Test accuracy: 58.3%
+
+
+
+
+Teacher (number of parameters ~ 3250000)
+Student (number of parameters ~ 106400)
+Discriminator (number of parameters ~ 11200)
+

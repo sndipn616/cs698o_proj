@@ -20,19 +20,22 @@ config = tf.ConfigProto()
 config.gpu_options.per_process_gpu_memory_fraction = 0.4
 
 current_device = '/gpu:' + str(gpu_num)
+
 export_dir_teacher = 'SVHN_Model_Teacher/'
 export_dir_student = 'SVHN_Model_Student/'
 export_dir_init_student = 'Initial_Wts_Student/'
-export_dir = 'SVHN_Model_Student_KD/'
+export_dir_disc = 'Disc_Model/'
+export_dir = 'SVHN_Model_Student_KD_adv/'
 temp_dir = 'SVHN_Model_Student/'
+data_dir = 'SVHN_data/'
 # model_saver = tf.saved_model.builder.SavedModelBuilder(export_dir)
 
-model_name = 'svhn_tf_basic'
+# model_name = 'mnist_tf_basic'
 model_name_save_teacher = 'svhn_teacher'
 model_name_save_student_trained = 'svhn_student'
-model_name_save_student = 'svhn_student_KD'
 model_name_initial_student = 'svhn_student_init'
-data_dir = 'SVHN_data/'
+model_name_save_disc = 'disc_model'
+model_name_save_student = 'svhn_student_KD_adv'
 
 def return_pointers():
   images = gzip.open(data_dir + "train-images-idx3-ubyte.gz", 'rb')
@@ -103,6 +106,15 @@ def output_size_no_pool(input_size, filter_size, padding, conv_stride):
     output_1 = float(((input_size - filter_size - 2*padding) / conv_stride) + 1.00)
     output_2 = float(((output_1 - filter_size - 2*padding) / conv_stride) + 1.00)
     return int(np.ceil(output_2))
+
+def get_label_disc(batch_size):
+  x = [0, 1]
+  X = []
+  while batch_size > 0:
+    X.append(x)
+    batch_size -= 1
+
+  return X
 
 def test_accuracy(session,teacher=True):
 
@@ -187,6 +199,7 @@ def test_accuracy(session,teacher=True):
 
 
 def Train_Student(session):
+  adv_labels = get_label_disc(batch_size)
   for epoch in range(num_epochs_student):
     batch_data = []
     batch_labels = []
@@ -223,7 +236,7 @@ def Train_Student(session):
         batch_data = []
         batch_labels = []
 
-        feed_dict = {tf_train_dataset : new_batch_data, tf_train_labels : new_batch_labels}
+        feed_dict = {tf_train_dataset : new_batch_data, tf_train_labels : new_batch_labels, tf_train_adv : adv_labels}
         # feed_dict = {tf_train_dataset : new_batch_data, tf_train_labels : new_batch_labels, 'x:0' : new_batch_data, 'y:0' : new_batch_labels}
         _, l, predictions = session.run([optimizer_student, loss_student, prediction_student], feed_dict=feed_dict)
         # l, predictions, _, _ = session.run([loss_student, prediction_student, logits_teacher, prediction_teacher], feed_dict=feed_dict)
@@ -238,10 +251,10 @@ def Train_Student(session):
         
 
   model_saver = tf.train.Saver(var_list=student_parameters)
-  model_saver.save(session, export_dir + model_name_save_student + str(alpha) + '_' + str(T), write_meta_graph=True)
+  model_saver.save(session, export_dir + model_name_save_student + '_' + str(alpha) + '_' + str(beta) + '_' + str(T), write_meta_graph=True)
 
   acc, w = test_accuracy(session, teacher=False)
-  print('Student : Iterations %d, alpha = %f, T = %d, Number of wrong classificiation: %d Test accuracy: %.1f%%' % (num_epochs_student, alpha, T, w, acc))
+  print('Student : Iterations %d, alpha = %f, beta = %f, T = %d, Number of wrong classificiation: %d Test accuracy: %.1f%%' % (num_epochs_student, alpha, beta, T, w, acc))
 
 
 
@@ -252,13 +265,16 @@ depth_teacher = 64
 depth_student = 16
 num_hidden_teacher = 1000
 num_hidden_student = 200
-# num_epochs_teacher = 3
-num_epochs_student = 10
-T = 5
-prob = 1
+num_hidden_disc = 100
 
-alpha = 5
-beta = 3
+num_labels_disc = 2
+
+num_epochs_student = 10
+
+T = 10
+
+alpha = 15
+beta = 0.2
 
 # def make_student_graph_KD():
 graph_student_KD = tf.Graph()
@@ -267,10 +283,8 @@ with graph_student_KD.as_default():
   '''Input data'''
   tf_train_dataset = tf.placeholder(tf.float32, shape=(batch_size, image_size, image_size, num_channels), name='x')
   tf_train_labels = tf.placeholder(tf.float32, shape=(batch_size, num_labels), name='y')
-  # tf_valid_dataset = tf.constant(valid_dataset)
-  # tf_test_dataset = tf.constant(test_dataset)
-  # tf_test_dataset = tf.placeholder(tf.float32, shape=(batch_size, image_size, image_size, num_channels))
-  # tf_test_labels = tf.placeholder(tf.float32, shape=(batch_size, num_labels))
+  
+  tf_train_adv = tf.placeholder(tf.float32, shape=(batch_size, num_labels_disc), name='y_2')
 
   '''Variables For Teacher'''
   # Input to Conv1 Layer    
@@ -406,23 +420,47 @@ with graph_student_KD.as_default():
     # Readout Layer: Softmax Layer
     return tf.matmul(hidden, layer6_weights_student) + layer6_biases_student
 
-  # logits = tf.matmul(hidden, layersm_weights_teacher) + layersm_biases_teacher
-  '''Training computation'''   
   logits_student = student_model(tf_train_dataset)
-  logits_student_soft = logits_student / T
 
-  prediction_teacher_soft = tf.nn.softmax(logits_teacher_eval / T)
+  '''Variables For Discriminator'''
+  # Input to Hidden1 Layer    
+  layer1_weights_disc = tf.Variable(tf.truncated_normal([num_labels, num_hidden_disc], stddev=0.1), name='l1wd')
+  layer1_biases_disc = tf.Variable(tf.zeros([num_hidden_disc]), name='l1bd')
   
+  # Hidden1 to Hidden2 Layer
+  layer2_weights_disc = tf.Variable(tf.truncated_normal([num_hidden_disc, num_hidden_disc], stddev=0.1), name='l2wd')
+  layer2_biases_disc = tf.Variable(tf.constant(1.0, shape=[num_hidden_disc]), name='l2bd')
+
+  # Hidden2 to Output Layer
+  layer3_weights_disc = tf.Variable(tf.truncated_normal([num_hidden_disc, num_labels_disc], stddev=0.1), name='l3wd')
+  layer3_biases_disc = tf.Variable(tf.constant(1.0, shape=[num_labels_disc]), name='l3bd')
+
+  disc_parameters = [layer1_weights_disc, layer1_biases_disc, layer2_weights_disc, layer2_biases_disc, layer3_weights_disc, layer3_biases_disc]
+
+  def discriminator_model(data):
+    out = tf.matmul(data, layer1_weights_disc) + layer1_biases_disc
+    out = tf.nn.relu(out)
+
+    out = tf.matmul(out, layer2_weights_disc) + layer2_biases_disc
+    out = tf.nn.relu(out)
+
+    out = tf.matmul(out, layer3_weights_disc) + layer3_biases_disc
+
+    return out
+
+  
+  '''Training computation'''   
+  logits_disc = discriminator_model(logits_student)
 
   tf.add_to_collection("student_model_logits", logits_student)
   # loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=logits, labels=tf_train_labels))
-  loss_student = tf.reduce_mean(
-  tf.nn.softmax_cross_entropy_with_logits(labels=tf_train_labels, logits=logits_student)) \
-  + alpha*(tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=prediction_teacher_soft, logits=logits_student_soft)))
+  loss_student = alpha * (tf.reduce_mean(
+  tf.nn.softmax_cross_entropy_with_logits(labels=tf_train_labels, logits=logits_student))) \
+  - beta*(tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=tf_train_adv, logits=logits_disc)))
 
   '''Optimizer'''
   # Learning rate of 0.05
-  optimizer_student = tf.train.GradientDescentOptimizer(learning_rate=0.00008).minimize(loss_student, var_list=student_parameters)
+  optimizer_student = tf.train.AdamOptimizer(learning_rate=0.0001).minimize(loss_student, var_list=student_parameters)
   # optimizer_student = tf.train.AdamOptimizer(learning_rate=0.0001).minimize(loss_student) 
 
   '''Predictions for the training, validation, and test data'''
@@ -431,7 +469,7 @@ with graph_student_KD.as_default():
   tf.add_to_collection("student_model_prediction", prediction_student)
 
 
-def train_student_KD():
+def train_student_KD_adv():
   with tf.device(current_device):
     # graph_student_KD = make_student_graph_KD()
 
@@ -440,6 +478,9 @@ def train_student_KD():
       
       saver = tf.train.Saver(var_list=teacher_parameters)
       saver.restore(session, export_dir_teacher + model_name_save_teacher)
+
+      saver = tf.train.Saver(var_list=disc_parameters)
+      saver.restore(session, export_dir_disc + model_name_save_disc)
 
       try:
         saver = tf.train.Saver(var_list=student_parameters)
@@ -454,4 +495,12 @@ def train_student_KD():
       Train_Student(session)
 
 
-train_student_KD()
+train_student_KD_adv()
+
+
+
+  
+    
+
+
+  

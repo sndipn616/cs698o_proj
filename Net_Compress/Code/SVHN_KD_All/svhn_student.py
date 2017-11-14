@@ -226,11 +226,11 @@ def Train_Student(session):
 
 batch_size = 500
 patch_size = 5
-depth = 32
+depth = 16
 
 
 prob = 0.5
-num_hidden = 500
+num_hidden = 200
 
 num_epochs = 10
 beta = 0.001
@@ -317,7 +317,7 @@ with graph_student.as_default():
 
   '''Optimizer'''
   # Learning rate of 0.05
-  optimizer_student = tf.train.GradientDescentOptimizer(learning_rate=0.0001).minimize(loss_student)
+  optimizer_student = tf.train.GradientDescentOptimizer(learning_rate=0.00008).minimize(loss_student)
   # optimizer_student = tf.train.AdamOptimizer(learning_rate=0.0001).minimize(loss_student) 
 
   '''Predictions for the training, validation, and test data'''
@@ -341,11 +341,11 @@ def pre_train_student():
         saver = tf.train.Saver(var_list=student_parameters)
         saver.save(session, export_dir_init_student + model_name_initial_student, write_meta_graph=True)
 
-      try:
-        saver = tf.train.Saver(var_list=student_parameters)
-        saver.restore(session, export_dir + model_name_save_student)
-      except Exception as e:
-        pass
+      # try:
+      #   saver = tf.train.Saver(var_list=student_parameters)
+      #   saver.restore(session, export_dir + model_name_save_student)
+      # except Exception as e:
+      #   pass
 
       Train_Student(session)  
 
