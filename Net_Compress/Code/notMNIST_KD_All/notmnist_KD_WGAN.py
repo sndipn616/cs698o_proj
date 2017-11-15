@@ -453,7 +453,7 @@ with graph_student_KD.as_default():
   logit_disc_teacher = discriminator_model(logits_teacher_eval)
   
 
-  loss_disc = gamma*(tf.reduce_mean(logit_disc_teacher) -  tf.reduce_mean(logits_disc_student))
+  loss_disc = -gamma*(tf.reduce_mean(logit_disc_teacher) -  tf.reduce_mean(logits_disc_student))
   loss_gen = beta*tf.reduce_mean(
     tf.nn.softmax_cross_entropy_with_logits(labels=tf_train_labels, logits=logits_student)) - alpha*tf.reduce_mean(logits_disc_student)
 
