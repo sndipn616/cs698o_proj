@@ -3,10 +3,12 @@ Teacher -
 Teacher : Total Iteration 10, Number of wrong classificiation: 1393 Test accuracy: 86.1%
 Student -
 Student : Total Iteration 10, Number of wrong classificiation: 2264 Test accuracy: 77.4%
+
 Student KD -
 Student : Iterations 10, alpha = 10.000000, T = 10, Number of wrong classificiation: 2353 Test accuracy: 76.5%
 Student : Iterations 10, alpha = 10.000000, T = 15, Number of wrong classificiation: 2653 Test accuracy: 73.5%
 Student : Iterations 10, alpha = 10.000000, T = 5, Number of wrong classificiation: 1760 Test accuracy: 82.4%
+
 Student KD adv -
 Student : Iterations 10, alpha = 15.000000, beta = 0.200000, T = 10, Number of wrong classificiation: 1615 Test accuracy: 83.8%
 
