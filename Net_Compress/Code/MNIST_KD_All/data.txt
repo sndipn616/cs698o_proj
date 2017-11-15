@@ -17,10 +17,15 @@ Student : Iterations 10, alpha = 15.000000, beta = 3.000000, T = 10, Number of w
 
 Student KD GAN - 
 Student : alpha = 3.000000, beta = 5.000000, gamma = 2.000000, T = 10, Number of wrong classificiation: 751 Test accuracy: 92.5%
+Student : alpha = 4.000000, beta = 5.000000, gamma = 2.000000, T = 10, Number of wrong classificiation: 773 Test accuracy: 92.3%
+Student : alpha = 2.500000, beta = 5.000000, gamma = 2.000000, T = 10, Number of wrong classificiation: 757 Test accuracy: 92.4%
+Student : alpha = 3.000000, beta = 6.000000, gamma = 2.500000, T = 10, Number of wrong classificiation: 776 Test accuracy: 92.2%
 
 Student KD WGAN -
 Student : alpha = 3.000000, beta = 10.000000, gamma = 1.000000, T = 10, Number of wrong classificiation: 954 Test accuracy: 90.5%
 Student : alpha = 2.000000, beta = 10.000000, gamma = 0.100000, T = 10, Number of wrong classificiation: 714 Test accuracy: 92.9%
+Student : alpha = 4.000000, beta = 10.000000, gamma = 1.000000, T = 10, Number of wrong classificiation: 565 Test accuracy: 94.3%
+
 
 Student Guided KD -
 Student : flag = 0, alpha = 10.000000, T = 10, Number of wrong classificiation: 1801 Test accuracy: 82.0%
