@@ -249,8 +249,8 @@ def Train_Student(session):
     labels.close()
         
 
-  model_saver = tf.train.Saver(var_list=student_parameters)
-  model_saver.save(session, export_dir + model_name_save_student + '_' + str(alpha) + '_' + str(beta) + '_' + str(gamma) + '_' + str(T), write_meta_graph=True)
+  # model_saver = tf.train.Saver(var_list=student_parameters)
+  # model_saver.save(session, export_dir + model_name_save_student + '_' + str(alpha) + '_' + str(beta) + '_' + str(gamma) + '_' + str(T), write_meta_graph=True)
 
   acc, w = test_accuracy(session, teacher=False)
   print('Student : alpha = %f, beta = %f, gamma = %f, T = %d, Number of wrong classificiation: %d Test accuracy: %.1f%%' % (alpha, beta, gamma, T, w, acc))
@@ -453,7 +453,7 @@ with graph_student_KD.as_default():
   logit_disc_teacher = discriminator_model(logits_teacher_eval)
   
 
-  loss_disc = gamma*(tf.reduce_mean(logit_disc_teacher) -  tf.reduce_mean(logits_disc_student))
+  loss_disc = -gamma*(tf.reduce_mean(logit_disc_teacher) -  tf.reduce_mean(logits_disc_student))
   loss_gen = beta*tf.reduce_mean(
     tf.nn.softmax_cross_entropy_with_logits(labels=tf_train_labels, logits=logits_student)) - alpha*tf.reduce_mean(logits_disc_student)
 

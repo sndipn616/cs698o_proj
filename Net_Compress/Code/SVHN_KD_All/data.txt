@@ -16,7 +16,7 @@ Student : alpha = 3.000000, beta = 5.000000, gamma = 2.000000, T = 10, Number of
 
 
 Student KD WGAN -
-Student : alpha = 2.000000, beta = 15.000000, gamma = 0.100000, T = 10, Number of wrong classificiation: 10838 Test accuracy: 58.3%
+Student : alpha = 2.000000, beta = 15.000000, gamma = 0.100000, T = 10, Number of wrong classificiation: 10718 Test accuracy: 58.8%
 
 
 
