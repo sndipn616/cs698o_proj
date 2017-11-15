@@ -11,7 +11,7 @@ from six.moves import cPickle as pickle
 from six.moves import range
 from tensorflow.examples.tutorials.mnist import input_data
 
-gpu_num = 1
+gpu_num = 3
 
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"]=str(gpu_num)
@@ -19,21 +19,20 @@ os.environ["CUDA_VISIBLE_DEVICES"]=str(gpu_num)
 config = tf.ConfigProto()
 config.gpu_options.per_process_gpu_memory_fraction = 0.4
 
+# mnist = input_data.read_data_sets("MNIST_data/", validation_size=10000, one_hot=True)
 current_device = '/gpu:' + str(gpu_num)
 export_dir_teacher = 'MNIST_Model_Teacher/'
-export_dir_student = 'MNIST_Model_Student/'
-export_dir_init_student = 'Initial_Wts_Student/'
-export_dir_disc = 'Disc_GAN/'
-export_dir = 'MNIST_Model_Student_KD_WGAN/'
+# export_dir_student = 'MNIST_Model_Student/'
+export_dir = 'MNIST_Guided/'
 temp_dir = 'MNIST_Model_Student/'
 # model_saver = tf.saved_model.builder.SavedModelBuilder(export_dir)
 
 # model_name = 'mnist_tf_basic'
 model_name_save_teacher = 'mnist_teacher'
-model_name_save_student_trained = 'mnist_student'
-model_name_initial_student = 'mnist_student_init'
-model_name_save_disc = 'disc_model_GAN'
-model_name_save_student = 'mnist_student_KD_WGAN'
+# model_name_save_student_trained = 'mnist_student_fitnet'
+model_name_save_student = 'mnist_student_guided_KD'
+model_name_save_student_guided = 'mnist_student_fitnet_guided'
+model_name_save_regressor = 'mnist_regressor'
 data_dir = 'MNIST_data/'
 
 def return_pointers():
@@ -105,15 +104,6 @@ def output_size_no_pool(input_size, filter_size, padding, conv_stride):
     output_1 = float(((input_size - filter_size - 2*padding) / conv_stride) + 1.00)
     output_2 = float(((output_1 - filter_size - 2*padding) / conv_stride) + 1.00)
     return int(np.ceil(output_2))
-
-def get_label_disc(batch_size):
-  x = [0, 1]
-  X = []
-  while batch_size > 0:
-    X.append(x)
-    batch_size -= 1
-
-  return X
 
 def test_accuracy(session,teacher=True):
 
@@ -197,8 +187,7 @@ def test_accuracy(session,teacher=True):
   return 100.0 * correct / total, wrong
 
 
-def Train_Student(session):
-  adv_labels = get_label_disc(batch_size)
+def Train_Student(session, flag=0):
   for epoch in range(num_epochs_student):
     batch_data = []
     batch_labels = []
@@ -235,14 +224,13 @@ def Train_Student(session):
         batch_data = []
         batch_labels = []
 
-        feed_dict = {tf_train_dataset : new_batch_data, tf_train_labels : new_batch_labels, tf_train_adv : adv_labels}
+        feed_dict = {tf_train_dataset : new_batch_data, tf_train_labels : new_batch_labels}
         # feed_dict = {tf_train_dataset : new_batch_data, tf_train_labels : new_batch_labels, 'x:0' : new_batch_data, 'y:0' : new_batch_labels}
-        _, _, l, predictions = session.run([D_solver, G_solver, loss_student, prediction_student], feed_dict=feed_dict)
-        # l, predictions, _, _ = session.run([loss_student, prediction_student, logits_teacher, prediction_teacher], feed_dict=feed_dict)
+        # if stage == 2:
+        _, l, predictions = session.run([optimizer_student, loss_student, prediction_student], feed_dict=feed_dict)          
 
-        if minibatch_num % 10 == 0:
-          # print (type(l))
-          print('Minibatch loss at step %d and epoch %d : %f' % (minibatch_num, epoch, l))          
+        if minibatch_num % 10 == 0:            
+          print('Minibatch loss at step %d and epoch [%d|%d] : %f' % (minibatch_num, epoch+1, num_epochs_student, l))
           print('Minibatch accuracy: %.1f%%' % accuracy(predictions, new_batch_labels))
 
     images.close()
@@ -250,11 +238,15 @@ def Train_Student(session):
         
 
   model_saver = tf.train.Saver(var_list=student_parameters)
-  model_saver.save(session, export_dir + model_name_save_student + '_' + str(alpha) + '_' + str(beta) + '_' + str(gamma) + '_' + str(T), write_meta_graph=True)
+  model_saver.save(session, export_dir + str(flag) + model_name_save_student + str(alpha) + '_' + str(T), write_meta_graph=True)
+
+  # model_saver = tf.train.Saver(var_list=[layer_regressor_student])
+  # model_saver.save(session, export_dir + model_name_save_regressor, write_meta_graph=True)
 
   acc, w = test_accuracy(session, teacher=False)
-  print('Student : alpha = %f, beta = %f, gamma = %f, T = %d, Number of wrong classificiation: %d Test accuracy: %.1f%%' % (alpha, beta, gamma, T, w, acc))
-
+  print('Student : flag = %d, alpha = %f, T = %d, Number of wrong classificiation: %d Test accuracy: %.1f%%' % (flag, alpha, T, w, acc))
+  with open("output.txt", "a") as myfile:
+    myfile.write('Student : flag = %d, alpha = %f, T = %d, Number of wrong classificiation: %d Test accuracy: %.1f%% \n' % (flag, alpha, T, w, acc))
 
 
 batch_size = 500
@@ -264,27 +256,25 @@ depth_teacher = 64
 depth_student = 16
 num_hidden_teacher = 1000
 num_hidden_student = 200
-num_hidden_disc = 100
-
-num_labels_disc = 2
-
+# num_epochs_teacher = 3
 num_epochs_student = 10
+T = 5
+prob = 1
 
-T = 10
-
-alpha = 4
-beta = 10
-gamma = 1
+alpha = 15
+beta = 0.001
 
 # def make_student_graph_KD():
-graph_student_KD = tf.Graph()
+graph_student_guided = tf.Graph()
 
-with graph_student_KD.as_default():
+with graph_student_guided.as_default():
   '''Input data'''
   tf_train_dataset = tf.placeholder(tf.float32, shape=(batch_size, image_size, image_size, num_channels), name='x')
   tf_train_labels = tf.placeholder(tf.float32, shape=(batch_size, num_labels), name='y')
-  
-  tf_train_adv = tf.placeholder(tf.float32, shape=(batch_size, num_labels_disc), name='y_2')
+  # tf_valid_dataset = tf.constant(valid_dataset)
+  # tf_test_dataset = tf.constant(test_dataset)
+  # tf_test_dataset = tf.placeholder(tf.float32, shape=(batch_size, image_size, image_size, num_channels))
+  # tf_test_labels = tf.placeholder(tf.float32, shape=(batch_size, num_labels))
 
   '''Variables For Teacher'''
   # Input to Conv1 Layer    
@@ -296,9 +286,10 @@ with graph_student_KD.as_default():
   layer2_biases_teacher = tf.Variable(tf.zeros([depth_teacher]), name='l2bt')
   
   teacher_first_half_params = [layer1_weights_teacher, layer1_biases_teacher, layer2_weights_teacher, layer2_biases_teacher]
-  # Conv2 to FC1 Layer
-  final_image_size = 7
-  layer3_weights_teacher = tf.Variable(tf.truncated_normal([final_image_size * final_image_size * depth_teacher, num_hidden_teacher], stddev=0.1), name='l3wt')
+
+  # Conv2 to FC1 Layer  
+  final_image_size_teacher = 7
+  layer3_weights_teacher = tf.Variable(tf.truncated_normal([final_image_size_teacher * final_image_size_teacher * depth_teacher, num_hidden_teacher], stddev=0.1), name='l3wt')
   layer3_biases_teacher = tf.Variable(tf.constant(1.0, shape=[num_hidden_teacher]), name='l3bt')
 
   # FC1 to FC2 Layer
@@ -306,7 +297,7 @@ with graph_student_KD.as_default():
   layer4_biases_teacher = tf.Variable(tf.constant(1.0, shape=[num_labels]), name='l4bt')
 
   teacher_second_half_params = [layer3_weights_teacher, layer3_biases_teacher, layer4_weights_teacher, layer4_biases_teacher]
-
+  
   teacher_parameters = [layer1_weights_teacher, layer1_biases_teacher, layer2_weights_teacher, layer2_biases_teacher, layer3_weights_teacher, layer3_biases_teacher, layer4_weights_teacher, layer4_biases_teacher]
   # data = tf_train_dataset
   '''Teacher Model for Training'''
@@ -320,8 +311,8 @@ with graph_student_KD.as_default():
     conv_2 = tf.nn.conv2d(pool_1, layer2_weights_teacher, strides=[1, 1, 1, 1], padding='SAME')
     hidden_2 = tf.nn.relu(conv_2 + layer2_biases_teacher)
     pool_2 = tf.nn.max_pool(hidden_2, [1, 2, 2, 1], [1, 2, 2, 1], padding='SAME')
-    
-    # Full Connected Layer
+
+     # Full Connected Layer
     # print ("Shape - ")
     # print (pool_2.get_shape())
     shape = pool_2.get_shape().as_list()
@@ -329,7 +320,7 @@ with graph_student_KD.as_default():
     hidden = tf.nn.relu(tf.matmul(reshape, layer3_weights_teacher) + layer3_biases_teacher)
     
     # Readout Layer: Softmax Layer
-    return tf.matmul(hidden, layer4_weights_teacher) + layer4_biases_teacher
+    return reshape, tf.matmul(hidden, layer4_weights_teacher) + layer4_biases_teacher
 
   def teacher_model_eval(data):
     # First Convolutional Layer with Pooling
@@ -348,12 +339,13 @@ with graph_student_KD.as_default():
     hidden = tf.nn.relu(tf.matmul(reshape, layer3_weights_teacher) + layer3_biases_teacher)
     
     # Readout Layer: Softmax Layer
-    return tf.matmul(hidden, layer4_weights_teacher) + layer4_biases_teacher
+    return reshape, tf.matmul(hidden, layer4_weights_teacher) + layer4_biases_teacher
      
   # logits = tf.matmul(hidden, layersm_weights_teacher) + layersm_biases_teacher
   '''Training computation'''   
-  logits_teacher_eval = teacher_model_eval(tf_train_dataset)  
-  prediction_teacher_eval = tf.nn.softmax(logits_teacher_eval)
+  logits_teacher_eval1, logits_teacher_eval2 = teacher_model_eval(tf_train_dataset)  
+  prediction_teacher_eval = tf.nn.softmax(logits_teacher_eval2)
+  
 
   '''Variables For Student'''
   # Input to Conv1 Layer    
@@ -369,9 +361,13 @@ with graph_student_KD.as_default():
   layer3_biases_student = tf.Variable(tf.constant(1.0, shape=[depth_student]), name='l3bs')
 
   student_first_half_params = [layer1_weights_student, layer1_biases_student, layer2_weights_student, layer2_biases_student, layer3_weights_student, layer3_biases_student]
-  # Conv3 to FC1 Layer
-  final_image_size = 4
-  layer4_weights_student = tf.Variable(tf.truncated_normal([final_image_size * final_image_size * depth_student, num_hidden_student], stddev=0.1), name='l4ws')
+
+  # Conv3 to Regressor
+  final_image_size_student = 4
+  layer_regressor_student = tf.Variable(tf.truncated_normal([final_image_size_student * final_image_size_student * depth_student, final_image_size_teacher * final_image_size_teacher * depth_teacher], stddev=0.1), name='lrs')
+
+  # Conv3 to FC1 Layer  
+  layer4_weights_student = tf.Variable(tf.truncated_normal([final_image_size_student * final_image_size_student * depth_student, num_hidden_student], stddev=0.1), name='l4ws')
   layer4_biases_student = tf.Variable(tf.constant(1.0, shape=[num_hidden_student]), name='l4bs')
 
   # FC1 to FC2 Layer
@@ -413,96 +409,88 @@ with graph_student_KD.as_default():
     hidden = tf.nn.relu(tf.matmul(hidden, layer5_weights_student) + layer5_biases_student)
     
     # Readout Layer: Softmax Layer
-    return tf.matmul(hidden, layer6_weights_student) + layer6_biases_student
+    return reshape, tf.matmul(hidden, layer6_weights_student) + layer6_biases_student
 
-  '''Variables For Discriminator'''
-  # Input to Hidden1 Layer    
-  layer1_weights_disc = tf.Variable(tf.truncated_normal([num_labels, num_hidden_disc], stddev=0.1), name='l1wd')
-  layer1_biases_disc = tf.Variable(tf.zeros([num_hidden_disc]), name='l1bd')
-  
-  # Hidden1 to Hidden2 Layer
-  layer2_weights_disc = tf.Variable(tf.truncated_normal([num_hidden_disc, num_hidden_disc], stddev=0.1), name='l2wd')
-  layer2_biases_disc = tf.Variable(tf.constant(1.0, shape=[num_hidden_disc]), name='l2bd')
+  # logits = tf.matmul(hidden, layersm_weights_teacher) + layersm_biases_teacher
+  '''Training computation'''   
+  logits_student1, logits_student2 = student_model(tf_train_dataset)
+  logits_student_soft = logits_student2 / T
 
-  # Hidden2 to Output Layer
-  layer3_weights_disc = tf.Variable(tf.truncated_normal([num_hidden_disc, num_labels_disc], stddev=0.1), name='l3wd')
-  layer3_biases_disc = tf.Variable(tf.constant(1.0, shape=[num_labels_disc]), name='l3bd')
-
-  disc_parameters = [layer1_weights_disc, layer1_biases_disc, layer2_weights_disc, layer2_biases_disc, layer3_weights_disc, layer3_biases_disc]
-
-  def discriminator_model(data):
-    out = tf.matmul(data, layer1_weights_disc) + layer1_biases_disc
-    out = tf.nn.relu(out)
-
-    out = tf.matmul(out, layer2_weights_disc) + layer2_biases_disc
-    out = tf.nn.relu(out)
-
-    out = tf.matmul(out, layer3_weights_disc) + layer3_biases_disc
-
-    return out
-
-  
-  '''Training computation''' 
-  # Fake
-  logits_student = student_model(tf_train_dataset)
-  logits_disc_student = discriminator_model(logits_student)
-  
-  
-
-  # Real
-  logit_disc_teacher = discriminator_model(logits_teacher_eval)
-  
-
-  loss_disc = -gamma*(tf.reduce_mean(logit_disc_teacher) -  tf.reduce_mean(logits_disc_student))
-  loss_gen = beta*tf.reduce_mean(
-    tf.nn.softmax_cross_entropy_with_logits(labels=tf_train_labels, logits=logits_student)) - alpha*tf.reduce_mean(logits_disc_student)
-
-  # Only update Discriminator's parameters, so var_list = disc_parameters
-  D_solver = tf.train.RMSPropOptimizer(learning_rate=0.000003).minimize(loss_disc, var_list=disc_parameters)
-  # Only update Student's parameters, so var_list = student_parameters
-  G_solver = tf.train.RMSPropOptimizer(learning_rate=0.0001).minimize(loss_gen, var_list=student_parameters)
-
-  layer1_weights_disc = tf.clip_by_value(layer1_weights_disc, -0.01, 0.01)
-  layer1_biases_disc = tf.clip_by_value(layer1_biases_disc, -0.01, 0.01)
-  layer2_weights_disc = tf.clip_by_value(layer2_weights_disc, -0.01, 0.01)
-  layer2_biases_disc = tf.clip_by_value(layer2_biases_disc, -0.01, 0.01)
-  layer3_weights_disc = tf.clip_by_value(layer3_weights_disc, -0.01, 0.01)
-  layer3_biases_disc = tf.clip_by_value(layer3_biases_disc, -0.01, 0.01)
-
-
+  prediction_teacher_soft = tf.nn.softmax(logits_teacher_eval2 / T)
+  # 1st Half Training
+  # loss_student = tf.reduce_mean(tf.nn.l2_loss(logits_teacher_eval1 - regressed_first_half))
   loss_student = tf.reduce_mean(
-    tf.nn.softmax_cross_entropy_with_logits(labels=tf_train_labels, logits=logits_student)) 
+  tf.nn.softmax_cross_entropy_with_logits(labels=tf_train_labels, logits=logits_student2)) \
+  + alpha*(tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=prediction_teacher_soft, logits=logits_student_soft)))
 
-  prediction_student = tf.nn.softmax(logits_student)
+
+  optimizer_student = tf.train.GradientDescentOptimizer(learning_rate=0.00007).minimize(loss_student, var_list=student_parameters)
+
+  # KD
+  # logits_student_soft = logits_student2 / T
+
+  # prediction_teacher_soft = tf.nn.softmax(logits_teacher_eval2 / T)  
+
+  # # loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=logits, labels=tf_train_labels))
+  # loss_student2 = tf.reduce_mean(
+  # tf.nn.softmax_cross_entropy_with_logits(labels=tf_train_labels, logits=logits_student2)) \
+  # + alpha*(tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=prediction_teacher_soft, logits=logits_student_soft)))
+
+  # '''Optimizer'''
+  # # Learning rate of 0.05
+  # optimizer_student2 = tf.train.GradientDescentOptimizer(learning_rate=0.00001).minimize(loss_student, var_list=student_parameters)
+  # # optimizer_student = tf.train.AdamOptimizer(learning_rate=0.0001).minimize(loss_student) 
+
+  # '''Predictions for the training, validation, and test data'''
+  prediction_student = tf.nn.softmax(logits_student2)
   
+  # tf.add_to_collection("student_model_prediction", prediction_student)
 
 
-def train_student_KD_WGAN():
+def train_student_KD():
+
   with tf.device(current_device):
-    # graph_student_KD = make_student_graph_KD()
+    # graph_student_guided = make_student_graph_KD()
 
-    with tf.Session(graph=graph_student_KD, config=config) as session:
+    with tf.Session(graph=graph_student_guided, config=config) as session:
       tf.global_variables_initializer().run()
       
       saver = tf.train.Saver(var_list=teacher_parameters)
       saver.restore(session, export_dir_teacher + model_name_save_teacher)
 
-      try:
-        saver = tf.train.Saver(var_list=student_parameters)
-        saver.restore(session, export_dir_init_student + model_name_initial_student)
-      except:
-        pass
+      # saver = tf.train.Saver(var_list=student_parameters)
+      # saver.restore(session, export_dir_student + model_name_save_student_trained)
 
-      # saver = tf.train.Saver(var_list=disc_parameters)
-      # saver.restore(session, export_dir_disc + model_name_save_disc)
+      # try:
+      #   saver = tf.train.Saver(var_list=[layer_regressor_student])
+      #   saver.restore(session, export_dir + model_name_save_regressor)
 
+      # except:
+      #   pass
+
+      
       print ("Testing Teacher for sanity check")
       acc, w = test_accuracy(session)
       print('Teacher : Number of wrong classificiation: %d Test accuracy: %.1f%%' % (w, acc))
 
+      # print ("Testing Student for sanity check")
+      # acc, w = test_accuracy(session, False)
+      # print('Student : Number of wrong classificiation: %d Test accuracy: %.1f%%' % (w, acc))
+
+      # tf.global_variables_initializer().run()
+
+      # if flag == 2:
+      model_saver = tf.train.Saver(var_list=student_parameters)
+      model_saver.restore(session, export_dir + '0' + model_name_save_student + str(alpha) + '_' + str(T))
+
+      saver = tf.train.Saver(var_list=student_first_half_params)
+      saver.restore(session, export_dir + model_name_save_student_guided)
+
+        # print ("Testing Student for sanity check")
+        # acc, w = test_accuracy(session, False)
+        # print('Student : Number of wrong classificiation: %d Test accuracy: %.1f%%' % (w, acc))
+
       Train_Student(session)
 
+train_student_KD()
 
-train_student_KD_WGAN()
-
-  

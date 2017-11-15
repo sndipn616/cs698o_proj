@@ -1,21 +1,30 @@
 MNIST - 
 Teacher - 
 Teacher : Total Iteration 10, Number of wrong classificiation: 611 Test accuracy: 93.9%
+
 Student - 
 Student : Total Iteration 10, Number of wrong classificiation: 1433 Test accuracy: 85.7%
+
 Student KD -
 Student : Iterations 10, alpha = 10.000000, T = 10, Number of wrong classificiation: 809 Test accuracy: 91.9%
+
 Student KD adv - 
 Student : Iterations 10, alpha = 15.000000, beta = 1.000000, T = 10, Number of wrong classificiation: 904 Test accuracy: 91.0%
 Student : Iterations 10, alpha = 15.000000, beta = 2.000000, T = 10, Number of wrong classificiation: 856 Test accuracy: 91.4%
 Student : Iterations 10, alpha = 15.000000, beta = 3.000000, T = 10, Number of wrong classificiation: 945 Test accuracy: 90.5%
 Student : Iterations 10, alpha = 15.000000, beta = 2.500000, T = 10, Number of wrong classificiation: 907 Test accuracy: 90.9%
+Student : Iterations 10, alpha = 15.000000, beta = 3.000000, T = 10, Number of wrong classificiation: 934 Test accuracy: 90.7%
+
 Student KD GAN - 
-Student : alpha = 3.000000, beta = 5.000000, gamma = 2.000000, T = 10, Number of wrong classificiation: 753 Test accuracy: 92.5%
+Student : alpha = 3.000000, beta = 5.000000, gamma = 2.000000, T = 10, Number of wrong classificiation: 751 Test accuracy: 92.5%
+
 Student KD WGAN -
-Student : alpha = 3.000000, beta = 5.000000, T = 10, Number of wrong classificiation: 1524 Test accuracy: 84.8%
-Student : alpha = 3.000000, beta = 10.000000, T = 10, Number of wrong classificiation: 1018 Test accuracy: 89.8%
-Student : alpha = 3.000000, beta = 10.000000, gamma = 0.100000, T = 10, Number of wrong classificiation: 582 Test accuracy: 94.2%
+Student : alpha = 3.000000, beta = 10.000000, gamma = 1.000000, T = 10, Number of wrong classificiation: 954 Test accuracy: 90.5%
+Student : alpha = 2.000000, beta = 10.000000, gamma = 0.100000, T = 10, Number of wrong classificiation: 714 Test accuracy: 92.9%
+
+Student Guided KD -
+Student : flag = 0, alpha = 10.000000, T = 10, Number of wrong classificiation: 1801 Test accuracy: 82.0%
+Student : flag = 0, alpha = 15.000000, T = 5, Number of wrong classificiation: 737 Test accuracy: 92.6%
 
 
 Teacher (number of parameters ~ 3250000)
