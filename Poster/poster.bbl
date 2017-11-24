@@ -1,0 +1,116 @@
+% $ biblatex auxiliary file $
+% $ biblatex version 2.6 $
+% Do not modify the above lines!
+%
+% This is an auxiliary file used by the 'biblatex' package.
+% This file may safely be deleted. It will be recreated as
+% required.
+%
+\begingroup
+\makeatletter
+\@ifundefined{ver@biblatex.sty}
+  {\@latex@error
+     {Missing 'biblatex' package}
+     {The bibliography requires the 'biblatex' package.}
+      \aftergroup\endinput}
+  {}
+\endgroup
+
+\entry{hinton2015distilling}{article}{}
+  \name{author}{3}{}{%
+    {{}%
+     {Hinton}{H.}%
+     {Geoffrey}{G.}%
+     {}{}%
+     {}{}}%
+    {{}%
+     {Vinyals}{V.}%
+     {Oriol}{O.}%
+     {}{}%
+     {}{}}%
+    {{}%
+     {Dean}{D.}%
+     {Jeff}{J.}%
+     {}{}%
+     {}{}}%
+  }
+  \strng{namehash}{HGVODJ1}
+  \strng{fullhash}{HGVODJ1}
+  \field{sortinit}{H}
+  \field{title}{Distilling the knowledge in a neural network}
+  \field{journaltitle}{arXiv preprint arXiv:1503.02531}
+  \field{year}{2015}
+\endentry
+
+\entry{romero2014fitnets}{article}{}
+  \name{author}{6}{}{%
+    {{}%
+     {Romero}{R.}%
+     {Adriana}{A.}%
+     {}{}%
+     {}{}}%
+    {{}%
+     {Ballas}{B.}%
+     {Nicolas}{N.}%
+     {}{}%
+     {}{}}%
+    {{}%
+     {Kahou}{K.}%
+     {Samira~Ebrahimi}{S.~E.}%
+     {}{}%
+     {}{}}%
+    {{}%
+     {Chassang}{C.}%
+     {Antoine}{A.}%
+     {}{}%
+     {}{}}%
+    {{}%
+     {Gatta}{G.}%
+     {Carlo}{C.}%
+     {}{}%
+     {}{}}%
+    {{}%
+     {Bengio}{B.}%
+     {Yoshua}{Y.}%
+     {}{}%
+     {}{}}%
+  }
+  \strng{namehash}{RA+1}
+  \strng{fullhash}{RABNKSECAGCBY1}
+  \field{sortinit}{R}
+  \field{title}{Fitnets: Hints for thin deep nets}
+  \field{journaltitle}{arXiv preprint arXiv:1412.6550}
+  \field{year}{2014}
+\endentry
+
+\entry{xu2017learning}{article}{}
+  \name{author}{3}{}{%
+    {{}%
+     {Xu}{X.}%
+     {Zheng}{Z.}%
+     {}{}%
+     {}{}}%
+    {{}%
+     {Hsu}{H.}%
+     {Yen-Chang}{Y.-C.}%
+     {}{}%
+     {}{}}%
+    {{}%
+     {Huang}{H.}%
+     {Jiawei}{J.}%
+     {}{}%
+     {}{}}%
+  }
+  \strng{namehash}{XZHYCHJ1}
+  \strng{fullhash}{XZHYCHJ1}
+  \field{sortinit}{X}
+  \field{title}{Learning Loss for Knowledge Distillation with Conditional
+  Adversarial Networks}
+  \field{journaltitle}{arXiv preprint arXiv:1709.00513}
+  \field{year}{2017}
+\endentry
+
+\lossort
+\endlossort
+
+\endinput
