@@ -28,10 +28,10 @@
 
 
 
- \documentclass[12pt, a2paper, portrait, margin=0mm, innermargin=5mm,
+ \documentclass[12pt, a2paper, portrait, margin=2mm, innermargin=4mm,
      blockverticalspace=5mm, colspace=5mm, subcolspace=5mm]{tikzposter} %Default values for poster format options.
 
- \tikzposterlatexaffectionproofon %shows small comment on how the poster was made at bottom of poster
+%  \tikzposterlatexaffectionproofon %shows small comment on how the poster was made at bottom of poster
 
  % Commands
  \newcommand{\bs}{\textbackslash}   % backslash
@@ -44,8 +44,11 @@
 
  % -- PREDEFINED THEMES ---------------------- %
  % Choose LAYOUT:  Default, Basic, Rays, Simple, Envelope, Wave, Board, Autumn, Desert,
- \usetheme{Autumn}
-\usecolorstyle[colorPalette=BrownBlueOrange]{Germany}
+%  \usetheme{Autumn}
+% \usecolorstyle[colorPalette=BrownBlueOrange]{Germany}
+\usetheme{Desert}
+\usecolorstyle[colorPalette=BlackBlackBlack]{Britain}
+
 
 \usepackage{multirow}
 \usepackage[backend=bibtex]{biblatex}
@@ -66,10 +69,10 @@
   
   \block[titleinnersep=2mm,bodyinnersep=3mm]{Knowledge Distillation using GANs}{Here we generalize the approach we have taken earlier. It is based on GANs. Though it uses GANs,
 the loss function we used is different from the one used by\cite{xu2017learning}. In this approach instead of pre-training the discriminator, we train discriminator, \textbf{D} and student network (generator), \textbf{G} on the go much like GANs. We assume the logits generated from \textbf{T} as \textbf{real} sample and the one generated from \textbf{S} as \textbf{fake} sample. The loss function for \textbf{D} is same as vanilla GAN, but for \textbf{G} which also happens to be student network has an additional term in it. $$L(W_D) = -\gamma[log(P_{real}(x)) + log(1-P_{fake}(x))]$$ $$L(W_G) = \beta H(y_{true}, P_S) - \alpha log(P_{fake}(x)) $$ where $P_{real}(x) = \sigma(D(T(x)))$ and $P_{fake}(x) = \sigma(D(G(x)))$, $\sigma()$ being sigmoid function.}
-\block{Knowledge Distillation using Wasserstein GANs}{This aproach is exactly the same as the one above, except that here we use Wasserstein GANs (WGANs) instead of vanilla GANs. As a result the loss function is slightly different. The loss functions are:
+\block[titleinnersep=2mm,bodyinnersep=3mm]{Knowledge Distillation using Wasserstein GANs}{This aproach is exactly the same as the one above, except that here we use Wasserstein GANs (WGANs) instead of vanilla GANs. As a result the loss function is slightly different. The loss functions are:
 $$L(W_D) = -\gamma[f_{real}(x) - f_{fake}(x)]$$ $$L(W_G) = \beta H(y_{true}, P_S) - \alpha f_{fake}(x) $$ where $f_{real}(x) = D(T(x))$ and $f_{fake}(x) = D(G(x))$}
 
-\block[titleinnersep=2mm,bodyinnersep=3mm]{Knowledge Distillation (Schematic Diagram)}
+\block[titleinnersep=4mm,bodyinnersep=4mm]{Knowledge Distillation (Schematic Diagram)}
 {
     \begin{tikzfigure}
         \includegraphics[width=0.3\textwidth, height=0.2\textwidth]{images/KD.png}
