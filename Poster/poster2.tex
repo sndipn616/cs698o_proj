@@ -1,59 +1,202 @@
-%\documentclass[25pt, a3paper]{tikzposter}
-\documentclass{tikzposter}
-\usepackage[utf8]{inputenc}
+%%
+%% This is file `tikzposter-example.tex',
+%% generated with the docstrip utility.
+%%
+%% The original source files were:
+%%
+%% tikzposter.dtx  (with options: `tikzposter-example.tex')
+%% 
+%% This is a generated file.
+%% 
+%% Copyright (C) 2014 by Pascal Richter, Elena Botoeva, Richard Barnard, and Dirk Surmann
+%% 
+%% This file may be distributed and/or modified under the
+%% conditions of the LaTeX Project Public License, either
+%% version 2.0 of this license or (at your option) any later
+%% version. The latest version of this license is in:
+%% 
+%% http://www.latex-project.org/lppl.txt
+%% 
+%% and version 2.0 or later is part of all distributions of
+%% LaTeX version 2013/12/01 or later.
+%% 
+
+
+
+
+
+
+
+
+ \documentclass[12pt, a2paper, portrait, margin=0mm, innermargin=5mm,
+     blockverticalspace=5mm, colspace=5mm, subcolspace=5mm]{tikzposter} %Default values for poster format options.
+
+ \tikzposterlatexaffectionproofon %shows small comment on how the poster was made at bottom of poster
+
+ % Commands
+ \newcommand{\bs}{\textbackslash}   % backslash
+ \newcommand{\cmd}[1]{{\bf \color{red}#1}}   % highlights command
+
+ % Title, Author, Institute
+ \title{Knowledge Distillation and its Variations}
+ \author{Sandipan Mandal \& Teekam Chand Mandan}
+ \institute{}
+
+ % -- PREDEFINED THEMES ---------------------- %
+ % Choose LAYOUT:  Default, Basic, Rays, Simple, Envelope, Wave, Board, Autumn, Desert,
+ \usetheme{Autumn}
+\usecolorstyle[colorPalette=BrownBlueOrange]{Germany}
+
+\usepackage{multirow}
 \usepackage[backend=bibtex]{biblatex}
-\addbibresource{cs698o_proj.bib}
+\addbibresource{cs698o_project.bib}
 
-\title{CS698O Project: Knowledge Distillation and its Variations}
-\author{Sandipan Mandal, Teekam Chand Mandan}
-\date{\today}
-\institute{Indian Institute of Technology Kanpur}
+ \begin{document}
 
-\usepackage{blindtext}
-\usepackage{comment}
-\usetheme{Board}
+     \maketitle
 
-\begin{document}
-\fontsize{30}{50}
-\maketitle
-
-\block[bodywidthscale=.5]
-{Sample Block}{Text\\Text\\Text Text}
-\begin{columns}
-\column{1.0}
-\block{Introduction}{In this project, we have implemented Knowledge Distillation(KD) from \cite{hinton2015distilling} and tried some variations of it. We evaluated the performance of KD on MNIST, notMNIST and SVHN datasets. Finally we have also implemented the paper Fitnets : Hints for Thin Deep Nets\cite{romero2014fitnets} and evaluated it on MNIST dataset.}
-\end{columns}
-
-\begin{columns}
-    \column{0.5}
-    \block{Knowledge Distillation}{In KD, we train a large teacher network \textbf{T}. We train our smaller student network \textbf{S} using a composite loss function consisting of two terms, one optimizing to improve label prediction accuracy, other to match pre-softmax logits with teacher \textbf{T}. Loss function is given by : $$L(W_S) = H(y_{true}, P_S) + \lambda H(P_T^{\tau}, P_S^{\tau})$$ where $H$ is the cross-entropy loss function, $y_{true}$ is the true label, $P_S$ is the softmax output of \textbf{S}, $P_T^{\tau}, P_S^{\tau}$ are respectively softmax output of \textbf{T} and \textbf{S} after dividing the corresponding logits by $\tau$.  }
+     \begin{columns}%blocks will be placed into columns
+         \column{.50}
+         \block[titleinnersep=2mm,bodyinnersep=3mm]{Introduction}{In this project, we have implemented Knowledge Distillation(KD) from \cite{hinton2015distilling} and tried some variations of it. We evaluated the performance of KD on MNIST, notMNIST and SVHN datasets. Finally we have also implemented the paper Fitnets : Hints for Thin Deep Nets\cite{romero2014fitnets} and evaluated it on MNIST dataset.
+            }
     
+     \block[titleinnersep=2mm,bodyinnersep=3mm]{Knowledge Distillation}{In KD, we train a large teacher network \textbf{T}. We train our smaller student network \textbf{S} using a composite loss function consisting of two terms, one optimizing to improve label prediction accuracy, other to match pre-softmax logits with teacher \textbf{T}. Loss function is given by : $$L(W_S) = H(y_{true}, P_S) + \lambda H(P_T^{\tau}, P_S^{\tau})$$ where $H$ is the cross-entropy loss function, $y_{true}$ is the true label, $P_S$ is the softmax output of \textbf{S}, $P_T^{\tau}, P_S^{\tau}$ are respectively softmax output of \textbf{T} and \textbf{S} after dividing the corresponding logits by $\tau$.  }
+     
+  \block[titleinnersep=2mm,bodyinnersep=3mm]{Basic Adversarial Knowledge Distillation}{Here, we train a large teacher network \textbf{T} and smaller student network \textbf{S}. Using \textbf{T} and \textbf{S}, we train a discriinator network \textbf{D}, which can distinguish if a logit is constructed from \textbf{T} or \textbf{S}. We train our final student network \textbf{S} using a composite loss function consisting of two terms, one optimizing to improve label prediction accuracy, other to match pre-softmax logits with teacher \textbf{T}. The only difference here is that the logit matching is done adversarially using \textbf{D}. The loss function is given by : $$L(W_S) = \alpha H(y_{true}, P_S) - \beta H(network_{true} , P_D)$$ where $P_D$ is the softmax output of the disriminator network which is fed the student logit as input, $network_{true}$ gives whether the given logit comes from \textbf{T} or \textbf{S}. During training, the logit always comes from \textbf{S}. The other symbols are the same as earlier.}
+  
+  \block[titleinnersep=2mm,bodyinnersep=3mm]{Knowledge Distillation using GANs}{Here we generalize the approach we have taken earlier. It is based on GANs. Though it uses GANs,
+the loss function we used is different from the one used by\cite{xu2017learning}. In this approach instead of pre-training the discriminator, we train discriminator, \textbf{D} and student network (generator), \textbf{G} on the go much like GANs. We assume the logits generated from \textbf{T} as \textbf{real} sample and the one generated from \textbf{S} as \textbf{fake} sample. The loss function for \textbf{D} is same as vanilla GAN, but for \textbf{G} which also happens to be student network has an additional term in it. $$L(W_D) = -\gamma[log(P_{real}(x)) + log(1-P_{fake}(x))]$$ $$L(W_G) = \beta H(y_{true}, P_S) - \alpha log(P_{fake}(x)) $$ where $P_{real}(x) = \sigma(D(T(x)))$ and $P_{fake}(x) = \sigma(D(G(x)))$, $\sigma()$ being sigmoid function.}
+\block{Knowledge Distillation using Wasserstein GANs}{This aproach is exactly the same as the one above, except that here we use Wasserstein GANs (WGANs) instead of vanilla GANs. As a result the loss function is slightly different. The loss functions are:
+$$L(W_D) = -\gamma[f_{real}(x) - f_{fake}(x)]$$ $$L(W_G) = \beta H(y_{true}, P_S) - \alpha f_{fake}(x) $$ where $f_{real}(x) = D(T(x))$ and $f_{fake}(x) = D(G(x))$}
 
-    \column{0.5}
-    \block{Basic Adversarial Knowledge Distillation}{Here, we train a large teacher network \textbf{T} and smaller student network \textbf{S}. Using \textbf{T} and \textbf{S}, we train a discriinator network \textbf{D}, which can distinguish if a logit is constructed from \textbf{T} or \textbf{S}. We train our final student network \textbf{S} using a composite loss function consisting of two terms, one optimizing to improve label prediction accuracy, other to match pre-softmax logits with teacher \textbf{T}. The only difference here is that the logit matching is done adversarially using \textbf{D}. The loss function is given by : $$L(W_S) = \alpha H(y_{true}, P_S) - \beta L_{class}(a_S = )$$ where $H$ is the cross-entropy loss function, $y_{true}$ is the true label, $P_S$ is the softmax output of \textbf{S}, $P_T^{\tau}, P_S^{\tau}$ are respectively softmax output of \textbf{T} and \textbf{S} after dividing the corresponding logits by $\tau$.  }
-\end{columns}
+\block[titleinnersep=2mm,bodyinnersep=3mm]{Knowledge Distillation (Schematic Diagram)}
+{
+    \begin{tikzfigure}
+        \includegraphics[width=0.3\textwidth, height=0.2\textwidth]{images/KD.png}
+    \end{tikzfigure}
+}
+%     \note[targetoffsetx=24cm, targetoffsety=-9cm,rotate=1,angle=270,radius=8cm,width=.75\textwidth,innersep=.4cm]{
+%         You can place notes that are ``attached'' to the previous block using the command
+%         \begin{quote} \texttt{\bs note[{\it options}]\{{\it contents}\}}\end{quote}
+%         The note is placed by default slightly to the right of a ``target'' in the center of the previous block.  The note style may also allow for a connection between the note and the ``target''.  \\
+%         The target may be shifted from the default by setting the options  \texttt{targetoffsetx, targetoffsety}, rotated by an angle with \texttt{rotate}, and its width with \texttt{width}.  The placement of the note in relation with the target is given in polar coordinates with \texttt{ radius, angle}. Please observe that notes are always drawn {\bf over} the other objects. They do not affect the placement of blocks.
+%      }
 
-\begin{columns}
-    \column{0.5}
-    \block{Knowledge Distillation using GANs/WGANs}{In KD, we train a large teacher network \textbf{T}. We train our smaller student network \textbf{S} using a composite loss function consisting of two terms, one optimizing to improve label prediction accuracy, other to match pre-softmax logits with teacher \textbf{T}. Loss function is given by : $$L(W_S) = H(y_{true}, P_S) + \lambda H(P_T^{\tau}, P_S^{\tau})$$ where $H$ is the cross-entropy loss function, $y_{true}$ is the true label, $P_S$ is the softmax output of \textbf{S}, $P_T^{\tau}, P_S^{\tau}$ are respectively softmax output of \textbf{T} and \textbf{S} after dividing the corresponding logits by $\tau$.  }
-    
+\column{.5}
+\block[titleinnersep=2mm,bodyinnersep=3mm]{Fitnets : Hints for Thin Deep Nets}{
+The approach of this paper\cite{romero2014fitnets} relies on the Knowledge Distillation\cite{hinton2015distilling} approach. This method is used to train a student network which is deeper but also thinner than the teacher network. First a wide and deep teacher network \textbf{T} is trained. Then we decide upon student network \textbf{S} which is thinner but deeper. The training of \textbf{S} proceeds in two phases. The first phase is bringing the intermediate representation of \textbf{T} and \textbf{S} together. The loss function for this step is:
+$$L(W_{guided}, W_r) = \frac{1}{2}\|u_T(x,W_{hint}) - r(u_S(x, W_{guided}), W_r) \|^2 $$
+where $W_{guided}$ and $W_{hint}$ are correspondingly the set of parameters of \textbf{S} and \textbf{T} upto the middle layer and $W_r$ is the regression weight applied to project the intermediate representation of \textbf{S} into the same dimension as the intermediate representation of \textbf{T}.\\
+The second phases of training \textbf{S} is applying Knowledge Distillation on the whole network with the parameters till middle layer initialized with $W_{guided}$.
+}
 
-    \column{0.5}
-    \block{}{}
-\end{columns}
+\block[titleinnersep=2mm,bodyinnersep=3mm]{Fitnet Training (Schematic Diagram)}
+{
+    \begin{tikzfigure}
+        \includegraphics[width=0.4\textwidth, height=0.32\textwidth]{images/Fitnet.png}
+    \end{tikzfigure}
+}
 
-%\begin{columns}
-%    \column{1}
-%    \block{The model architecture (from the paper)}
-%    {
-%        \begin{tikzfigure}
-%            \includegraphics[width=0.8\textwidth]{images/model.png}
-%        \end{tikzfigure}
-%    }
-%\end{columns}
+\block[titleinnersep=2mm,bodyinnersep=3mm]{Experiments (Architecture - I)}{
+Exact architecture of \textbf{T} and \textbf{S} are different for different datasets but in each case both of them are fully connected networks with \textbf{S} having typically $~50\%$ as much parameters compared to \textbf{T}.
+\begin{tikzfigure}
+%   \centering
+%   \caption{Experimental Results for architecture - 1}
+%   \label{tab:table1}
+  \begin{tabular}{| c | c | c | c | c | c |}
+    \hline
+    \multirow{2}{*}{Dataset} & \multicolumn{4}{c|}{Number of Mis- Classifications} & \multirow{2}{*}{No. of test examples} \\
+    \cline{2-5}
+    & T & S (initial)  &  S (KD) & S (adver. KD) & \\
+    \cline{1-6}
+    MNIST & 476 & 597 & 583 & \textbf{375} & 10000\\
+    \cline{1-6}
+    notMNIST & 1200 & 1344  & 1321 & \textbf{1089} & 10000 \\
+    \cline{1-6}
+    SVHN & 8339 & 9101 & 9014 & \textbf{8659} & 26032\\
+    \cline{1-6}
+  \end{tabular}
+\end{tikzfigure}
+}
+\block[titleinnersep=2mm,bodyinnersep=3mm]{Experiments (Architecture-II)}{
+$\#$ parameters in \textbf{T}: $3250000$, with $2$ conv layers followed by $2$ fc layers.\\
+$\#$ parameters in \textbf{S}: $106400$ (Nearly $3.27\%$ of \textbf{T}), with $3$ conv layers followed by $3$ fc layers.
+\begin{tikzfigure}
+% \begin{table}[h!]
+%   \centering
+%   \caption{Experimental Results for architecture - 2}
+%   \label{tab:table2}
+  \begin{tabular}{| c | c | c | c | c | c | c | c |}
+    \hline
+    \multirow{2}{*}{Dataset} & \multicolumn{7}{c|}{$\#$ Mis- Classifications}  \\
+    \cline{2-8}
+    & T & S  & KD &  adv. KD & GAN KD & WGAN KD & Guided KD \\
+    \cline{1-8}
+    MNIST & 611 & 1433 & 809 & 856 & 753 & \textbf{565} & 737 \\
+    \cline{1-8}
+    notMNIST & 1393 & 2264 & 1760 & 1615 & 1702 &  \textbf{1397}& - \\
+    \cline{1-8}
+    SVHN & 5199 & 19419 & 16652 & 12964 & 12797 & \textbf{10816} & - \\
+    \cline{1-8}
+  \end{tabular}
+% \end{table}
+\end{tikzfigure}
+}
+        %  \begin{subcolumns}
+        %      \subcolumn{.45}
+        %      \block{Subcolumns}{If you want to have an additional subdivision of columns inside a column, you may use the\\ \texttt{\bs subcolumns} environment inside of a column environment.  The functionality is similar to that of columns, but now the widths are relative to the width of the current column.}
+
+        %      \subcolumn{.5}
+        %      \block{}{An example use of subcolumns is.
+        %          \begin{quote}
+        %              \texttt{\bs begin\{subcolumns\}\\
+        %              \bs subcolumn\{.6\}\\
+        %              \bs block\{\dots\}\{\dots\}\\
+        %              \bs subcolumn\{.4\}\\
+        %              \bs block\{\dots\}\{\dots\}\\
+        %              \bs block\{\dots\}\{\dots\}\\
+        %              \bs end\{subcolumns\}
+        %              }
+        %      \end{quote}
+        %  }
+        %  \end{subcolumns}
+
+         \block[titleinnersep=2mm,bodyinnersep=3mm]{References}{\printbibliography[heading=none]}
+
+     \end{columns}
+
+%     \block[titleoffsety=-1cm,bodyoffsety=-1cm]{Sample document}{\vspace{2em}
+%         This poster was created by the following commands (omitting the contents of the blocks and notes) to give a sense of how different objects are created and options used.
+%         \begin{quote}
+%             \texttt{\bs documentclass[25pt, a0paper, portrait, margin=0mm, innermargin=15mm,
+%         blockverticalspace=15mm, colspace=15mm, subcolspace=8mm]\{tikzposter\}\\
+%             \bs title\{Using tikzposter\} \bs author\{Pascal Richter, Elena Botoeva, Richard Barnard, \& Dirk Surmann\} \bs institute\{\}\\
+%              \bs usetheme\{Autumn\}\bs usecolorstyle[colorPalette=BrownBlueOrange]\{Germany\}\\
+%             \bs begin\{document\}\bs maketitle\\
+%             \bs begin\{columns\} \bs column\{0.55\}\\
+%             \bs block\{Creating the document\}\{The document\dots\} \bs note[targetoffsetx=-.05\bs textwidth,targetoffsety=9.5cm,innersep=.4cm,angle=-45,connection]\{\dots\}\\
+%             \bs block\{The title matter\}\{The title\dots\}\\
+%             \bs block\{Blocks\}\{Blocks are\dots\} \bs note[targetoffsetx=24cm, targetoffsety=-9cm,rotate=1,angle=270,radius=8cm,width=.75\bs textwidth,innersep=.4cm]\{You can\dots\}\\
+%             \bs column\{0.45\} \bs block\{Columns\}\{By default,\dots\}\\
+%             \bs begin\{subcolumns\} \bs subcolumn\{.45\}
+%             \bs block\{Subcolumns\}\{If you\dots\}
+%             \bs subcolumn\{.5\} \bs block\{\}\{An example\dots\}
+%             \bs end\{subcolumns\}\\
+%             \bs block[titlewidthscale=.8,bodywidthscale=.9,titleoffsety=9.5mm,bodyoffsety=9mm]\{Changing the Poster's Appearance\}\{If the default\dots\}
+%             \bs end\{columns\}\\
+%             \bs block[titleoffsety=-1cm,bodyoffsety=-1cm]\{Sample document\}\{This poster\dots\}\\
+%             \bs end\{document\}
+%             }
+%         \end{quote}
+%     }
+
+ \end{document}
 
 
-\block{References}{\printbibliography[heading=none]}
 
-\end{document}
+
+\endinput
+%%
+%% End of file `tikzposter-example.tex'.
+
 
